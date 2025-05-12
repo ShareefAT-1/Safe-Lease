@@ -61,6 +61,10 @@ const propertySchema = new mongoose.Schema({
     enum: ['Sale', 'Lease'],
     required: true
   },
+  image: {
+    type: String,
+    required: false
+  },
   owner: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
