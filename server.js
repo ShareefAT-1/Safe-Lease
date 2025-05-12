@@ -16,7 +16,7 @@ connectDB();
 
 app.use('/auth', authRoutes); 
 app.use('/properties', propertyRoutes); 
-app.use('/agreements', agreementRoutes);
+app.use('/agreements', agreementRoutes); 
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
