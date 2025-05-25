@@ -22,17 +22,17 @@ const Login = () => {
 
     try {
       const response = await axiosbase.post("/auth/login", formData);
-      console.log("Login Response:", response.data); 
+      const { token, user } = response.data;
 
-      const { token, user } = response.data; 
-
+      // Store all user details you might need later
       localStorage.setItem("user_access_token", token);
-      localStorage.setItem("user_id", user._id); 
+      localStorage.setItem("user_id", user._id);
       localStorage.setItem("user_isloggedin", "true");
-      localStorage.setItem("username", user.name); 
+      localStorage.setItem("username", user.name);
+      localStorage.setItem("profilePic", user.profilePic || ""); // <-- Added profilePic storage
 
       toast.success("Login Successful!");
-      navigate("/"); 
+      navigate("/");
 
       setFormData({ email: "", password: "" });
     } catch (error) {

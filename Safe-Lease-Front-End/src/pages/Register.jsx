@@ -1,14 +1,16 @@
 import { useState } from "react";
 import axiosbase from "../config/axios-config";
 import { toast } from "react-hot-toast";
+import { useNavigate } from "react-router-dom"; 
 
 const Register = () => {
+  const Navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
     role: "",
-    phone: "",        // Added phone here
+    phone: "",       
   });
 
   const handleChange = (e) => {
@@ -36,6 +38,8 @@ const Register = () => {
       localStorage.setItem("user", JSON.stringify(user));
 
       toast.success("Registration Successful!");
+      Navigate("/login");
+      
     } catch (error) {
       console.error("Registration failed:", error);
       toast.error(error.response?.data?.message || "Registration Failed!");
@@ -112,7 +116,6 @@ const Register = () => {
             </select>
           </div>
 
-          {/* New phone input */}
           <div>
             <label className="block text-sm font-medium text-gray-400">
               Phone Number

@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 const registerUser = async (req, res) => {
-  const { name, email, password, role, phone } = req.body;
+  const { name, email, password, role, phone, profilePic } = req.body;
 
   if (!name || !email || !password || !role || !phone) {
     return res.status(400).json({ message: 'Please provide name, email, password, role, and phone.' });
@@ -23,7 +23,15 @@ const registerUser = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    const newUser = new User({ name, email, password: hashedPassword, role, phone });
+    const newUser = new User({
+      name,
+      email,
+      password: hashedPassword,
+      role,
+      phone,
+      profilePic, // optional, will use default if not provided
+    });
+
     await newUser.save();
 
     const token = jwt.sign(
@@ -40,6 +48,7 @@ const registerUser = async (req, res) => {
         email: newUser.email,
         role: newUser.role,
         phone: newUser.phone,
+        profilePic: newUser.profilePic,
       },
       token,
     });
@@ -76,6 +85,8 @@ const loginUser = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        phone: user.phone,
+        profilePic: user.profilePic,
       },
       token,
     });
