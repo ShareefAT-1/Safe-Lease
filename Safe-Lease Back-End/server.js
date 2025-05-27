@@ -28,8 +28,8 @@ const agreementsDir = path.join(__dirname, 'agreements');
 app.use(cors());
 app.use(express.json());
 
-app.use('/uploads', express.static(uploadDir));          
-app.use('/agreements', express.static(agreementsDir));  
+app.use('/uploads', express.static(uploadDir));
+app.use('/agreements', express.static(agreementsDir));
 
 connectDB();
 
@@ -39,5 +39,5 @@ app.use('/agreements', agreementRoutes);
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
-  console.log(`Server running ⚙️...`);
+  console.log(`Server running ⚙️ on port ${PORT}`);
 });

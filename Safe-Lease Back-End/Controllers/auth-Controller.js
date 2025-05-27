@@ -29,7 +29,7 @@ const registerUser = async (req, res) => {
       password: hashedPassword,
       role,
       phone,
-      profilePic, // optional, will use default if not provided
+      profilePic, 
     });
 
     await newUser.save();
