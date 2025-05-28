@@ -24,12 +24,11 @@ const Login = () => {
       const response = await axiosbase.post("/auth/login", formData);
       const { token, user } = response.data;
 
-      // Store all user details you might need later
       localStorage.setItem("user_access_token", token);
       localStorage.setItem("user_id", user._id);
       localStorage.setItem("user_isloggedin", "true");
       localStorage.setItem("username", user.name);
-      localStorage.setItem("profilePic", user.profilePic || ""); // <-- Added profilePic storage
+      localStorage.setItem("profilePic", user.profilePic || ""); 
 
       toast.success("Login Successful!");
       navigate("/");

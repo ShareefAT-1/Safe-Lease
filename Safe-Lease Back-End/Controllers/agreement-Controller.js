@@ -8,7 +8,7 @@ exports.createAgreement = async (req, res) => {
 
     const agreement = new Agreement({
       tenant,
-      landlord: req.user,
+      landlord: req.user._id,  
       property,
       startDate,
       endDate,
@@ -40,17 +40,34 @@ exports.createAgreement = async (req, res) => {
 
 exports.requestAgreement = async (req, res) => {
   try {
-    const { propertyId, landlordId, message } = req.body;
+    const {
+      propertyId,
+      landlordId,
+      agreementTerms,
+      rentAmount,
+      startDate,
+      endDate,
+      message,
+    } = req.body;
+
+    if (!agreementTerms || !rentAmount || !startDate || !endDate) {
+      return res.status(400).json({ error: 'Missing required agreement details' });
+    }
 
     const newRequest = new Agreement({
       property: propertyId,
       landlord: landlordId,
       tenant: req.user._id,
+      agreementTerms,
+      rentAmount,
+      startDate,
+      endDate,
       message,
       status: 'pending',
     });
 
     await newRequest.save();
+
     res.status(201).json({ message: 'Lease request sent', agreement: newRequest });
   } catch (err) {
     console.error('Request failed:', err);
@@ -75,8 +92,19 @@ exports.updateAgreementStatus = async (req, res) => {
 
     if (!updatedAgreement) return res.status(404).json({ error: 'Agreement not found' });
 
+    if (status === 'approved') {
+      const populatedAgreement = await Agreement.findById(agreementId)
+        .populate('tenant', 'name')
+        .populate('landlord', 'name')
+        .populate('property', 'title');
+
+      const filePath = path.join(__dirname, '..', 'agreements', `${agreementId}.pdf`);
+      await generateAgreementPDF(populatedAgreement, filePath);
+    }
+
     res.json({ message: `Agreement ${status}`, agreement: updatedAgreement });
   } catch (err) {
+    console.error('Status update failed:', err);
     res.status(500).json({ error: 'Status update failed' });
   }
 };
@@ -91,6 +119,7 @@ exports.getRequestsForLandlord = async (req, res) => {
 
     res.json({ requests });
   } catch (err) {
+    console.error('Fetch requests failed:', err);
     res.status(500).json({ error: 'Failed to fetch requests' });
   }
 };
