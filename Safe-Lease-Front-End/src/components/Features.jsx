@@ -8,11 +8,16 @@ export default function Features() {
   ];
 
   return (
-    <section className="py-16 px-6 bg-white">
-      <h2 className="text-3xl font-bold text-center text-gray-800 mb-10">Why Choose SafeLease?</h2>
-      <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+    <section className="h-[] pt-20 pb-20 px-6">
+      <h2 className="text-3xl font-bold text-center text-gray-800 mb-12">
+        Why Choose <span className="text-blue-600">SafeLease</span>?
+      </h2>
+      <div className="grid md:grid-cols-3 gap-10 max-w-6xl mx-auto ">
         {features.map((f, idx) => (
-          <div key={idx} className="bg-blue-100 p-6 rounded-xl text-center shadow-sm">
+          <div
+            key={idx} 
+            className="bg-blue-100 p-6 rounded-2xl text-center shadow-lg hover:scale-105 transition-transform"
+          >
             <h3 className="text-xl font-semibold text-blue-700 mb-2">{f.title}</h3>
             <p className="text-gray-600">{f.desc}</p>
           </div>
