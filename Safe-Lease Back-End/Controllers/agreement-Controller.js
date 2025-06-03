@@ -68,7 +68,7 @@ exports.requestAgreement = async (req, res) => {
 
     await newRequest.save();
 
-    res.status(201).json({ message: 'Lease request sent', agreement: newRequest });
+    res.status(201).json({ message: 'Lease request sent', agreement: newRequest }); 
   } catch (err) {
     console.error('Request failed:', err);
     res.status(500).json({ error: 'Could not request agreement' });

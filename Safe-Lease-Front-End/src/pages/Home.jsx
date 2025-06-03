@@ -10,7 +10,7 @@ const Home = () => {
       style={{ backgroundImage: `url(${bg})` }}
     >
       {/* Darker overlay with better opacity */}
-      <div className="absolute inset-0 bg-black/15 backdrop-blur-sm"></div>
+      <div className="absolute inset-0 bg-black/10 backdrop-blur-sm"></div> 
 
       {/* Welcome Text + Button sliding in from left */}
       <motion.div

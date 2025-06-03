@@ -38,7 +38,7 @@ const SingleProperty = () => {
 
         <div className="p-8 md:w-1/2 flex flex-col justify-between h-full">
           <div className="flex flex-col justify-start space-y-6">
-            <p className="text-gray-700 text-lg">{product.description}</p>
+            <p className="text-gray-700 text-lg">{product.description}</p> 
 
             <div className="flex items-center justify-between">
               <span className="text-2xl font-bold text-blue-600">
