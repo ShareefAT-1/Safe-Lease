@@ -10,9 +10,13 @@ export default function Navbar() {
   const navigate = useNavigate();
 
   useEffect(() => {
+
+    console.log("gh")
+
     const loggedIn = localStorage.getItem("user_isloggedin");
     const userNameFromStorage = localStorage.getItem("username");
     const profilePicFromStorage = localStorage.getItem("profilePic");
+
 
     if (loggedIn === "true") {
       setIsLoggedIn(true);
@@ -23,7 +27,12 @@ export default function Navbar() {
       setUsername("");
       setProfilePic(null);
     }
-  }, []);
+  },[]);
+
+  
+
+  console.log(isLoggedIn);
+  
 
   const handleLogout = () => {
     localStorage.removeItem("user_access_token");

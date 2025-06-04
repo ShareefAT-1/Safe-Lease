@@ -9,10 +9,8 @@ const Home = () => {
       className="py-24 bg-cover bg-center bg-no-repeat text-center relative"
       style={{ backgroundImage: `url(${bg})` }}
     >
-      {/* Darker overlay with better opacity */}
       <div className="absolute inset-0 bg-black/10 backdrop-blur-sm"></div> 
 
-      {/* Welcome Text + Button sliding in from left */}
       <motion.div
         initial={{ opacity: 0, x: -100 }}
         animate={{ opacity: 1, x: 0 }}
@@ -38,7 +36,6 @@ const Home = () => {
         </button>
       </motion.div>
 
-      {/* Features sliding in from right with slight delay */}
       <motion.div
         initial={{ opacity: 0, x: 100 }}
         animate={{ opacity: 1, x: 0 }}

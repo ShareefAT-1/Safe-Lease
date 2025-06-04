@@ -2,7 +2,7 @@ const User = require('../models/User-model');
 
 const roleMiddleware = (requiredRole) => {
   return (req, res, next) => {
-    User.findById(req.user) 
+    User.findById(req.user.id) 
       .then(user => {
         if (!user) {
           return res.status(404).json({ msg: 'User not found' });

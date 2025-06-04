@@ -55,7 +55,6 @@ const SingleProperty = () => {
               </span>
             </div>
 
-            {/* Property Details */}
             <div className="grid grid-cols-2 gap-y-3 gap-x-6 text-gray-600 text-sm">
               <Detail label="Location" value={product.location} />
               <Detail label="Type" value={product.type} />
@@ -65,7 +64,6 @@ const SingleProperty = () => {
               <Detail label="Bathrooms" value={product.bathrooms} />
             </div>
 
-            {/* Tags */}
             {product.features?.length > 0 && (
               <div>
                 <h4 className="text-gray-800 font-semibold mb-2">Features</h4>

@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 const About = () => {
   return (
     <section className="relative bg-gradient-to-br from-blue-50 to-white py-24 px-6 overflow-hidden">
-      {/* Soft background blob */}
+
       <div className="absolute top-0 right-0 w-72 h-72 bg-blue-200 rounded-full mix-blend-multiply blur-3xl opacity-30 animate-pulse" />
       
       <div className="relative max-w-3xl mx-auto text-center backdrop-blur-md bg-white/70 p-10 rounded-3xl shadow-xl">

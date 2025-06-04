@@ -31,7 +31,8 @@ const Login = () => {
       localStorage.setItem("profilePic", user.profilePic || ""); 
 
       toast.success("Login Successful!");
-      navigate("/");
+      // navigate("/");
+      window.location.replace('/')
 
       setFormData({ email: "", password: "" });
     } catch (error) {

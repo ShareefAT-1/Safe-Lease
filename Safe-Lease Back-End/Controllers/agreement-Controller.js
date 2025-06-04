@@ -40,6 +40,9 @@ exports.createAgreement = async (req, res) => {
 
 exports.requestAgreement = async (req, res) => {
   try {
+
+    console.log("hrty",req.user);
+    
     const {
       propertyId,
       landlordId,
@@ -57,7 +60,7 @@ exports.requestAgreement = async (req, res) => {
     const newRequest = new Agreement({
       property: propertyId,
       landlord: landlordId,
-      tenant: req.user._id,
+      tenant: req.user.id,
       agreementTerms,
       rentAmount,
       startDate,
