@@ -1,13 +1,12 @@
-// src/pages/Register.jsx
 import { useState } from "react";
 import axiosbase from "../config/axios-config";
 import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from '../context/AuthContext'; // Import useAuth hook
+import { useAuth } from '../context/AuthContext'; 
 
 const Register = () => {
   const navigate = useNavigate();
-  const { login } = useAuth(); // Get the login function from context
+  const { login } = useAuth();
 
   const [formData, setFormData] = useState({
     name: "",
@@ -44,11 +43,10 @@ const Register = () => {
       const res = await axiosbase.post("/auth/register", formData);
       const { token, user } = res.data;
 
-      // Use the context's login function to save auth data
-      login(token, user); // Log in the user after successful registration
+      login(token, user); 
 
       toast.success("Registration Successful!");
-      navigate("/"); // Redirect to home/dashboard after successful registration and login
+      navigate("/"); 
       
     } catch (error) {
       console.error("Registration failed:", error.response?.data || error.message || error);

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import axios from 'axios'; // Assuming axiosbase is aliased to axios
+import axios from 'axios'; 
 import toast from 'react-hot-toast';
 
 const RequestAgreement = ({ propertyId, landlordId, tenantId }) => {
@@ -16,7 +16,6 @@ const RequestAgreement = ({ propertyId, landlordId, tenantId }) => {
     }
 
     try {
-      // Changed to 'token' for consistency
       const token = localStorage.getItem('token'); 
       if (!token) {
           toast.error("You must be logged in to send a request.");
@@ -36,7 +35,7 @@ const RequestAgreement = ({ propertyId, landlordId, tenantId }) => {
       });
 
       toast.success(res.data.message);
-      // Optional: Clear form after successful request
+
       setMessage('');
       setAgreementTerms('');
       setRentAmount('');

@@ -1,14 +1,13 @@
-// src/pages/Login.jsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axiosbase from "../config/axios-config";
 import { toast } from "react-hot-toast";
-import { useAuth } from '../context/AuthContext'; // Import useAuth hook
+import { useAuth } from '../context/AuthContext'; 
 
 const Login = () => {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const navigate = useNavigate();
-  const { login } = useAuth(); // Get the login function from context
+  const { login } = useAuth(); 
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -25,11 +24,9 @@ const Login = () => {
 
     try {
       const response = await axiosbase.post("/auth/login", formData);
-      const { token, user } = response.data; // Destructure token and user
+      const { token, user } = response.data;
 
-      // Use the context's login function to save auth data
-      // This will handle clearing old localStorage keys and setting new ones
-      login(token, user); // Pass token and user data to context
+      login(token, user); 
 
       toast.success("Login Successful!");
       navigate("/");

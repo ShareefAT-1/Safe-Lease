@@ -1,21 +1,16 @@
-import React, { useEffect } from "react"; // Keep useEffect if needed for other things, but auth logic moves
+import React, { useEffect } from "react"; 
 import { NavLink, useNavigate } from "react-router-dom";
 import SearchBox from "./SearchBox";
 import toast from "react-hot-toast";
-import { useAuth } from "../context/AuthContext"; // Import the useAuth hook
+import { useAuth } from "../context/AuthContext"; 
 
 export default function Navbar() {
-  // Use the auth context to get authentication state and user data
   const { isAuthenticated, user, logout } = useAuth();
   const navigate = useNavigate();
 
-  // No need for local useState for isLoggedIn, username, profilePic or their useEffect
-  // because AuthContext manages and provides these reactive states.
-  // The console.log("gh") and console.log(isLoggedIn) inside the component will now reflect
-  // the reactive state from the context.
 
   const handleLogout = () => {
-    logout(); // Call the logout function from AuthContext
+    logout();
     toast.success("Logged out successfully!");
     navigate("/login");
   };
@@ -78,7 +73,6 @@ export default function Navbar() {
           <SearchBox />
         </li>
 
-        {/* Conditional rendering based on isAuthenticated from context */}
         {!isAuthenticated ? (
           <>
             <li>
@@ -108,17 +102,16 @@ export default function Navbar() {
           </>
         ) : (
           <>
-            {/* Display profile pic and username if user object exists */}
             {user && (
               <li className="flex items-center space-x-2 font-semibold text-blue-600">
                 {user.profilePic && (
                   <img
                     src={user.profilePic}
                     alt="Profile"
-                    className="w-8 h-8 rounded-full object-cover" // Ensure consistent sizing
+                    className="w-8 h-8 rounded-full object-cover" 
                   />
                 )}
-                <span>{user.username}</span> {/* Use user.username from context */}
+                <span>{user.username}</span> 
               </li>
             )}
             <li>

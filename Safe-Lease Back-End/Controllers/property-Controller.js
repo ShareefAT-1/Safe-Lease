@@ -1,4 +1,4 @@
-const Property = require('../models/Property-model'); // Make sure this path is correct
+const Property = require('../models/Property-model'); 
 
 //////////// Create new property //////////////////
 const createProperty = async (req, res) => {
@@ -134,13 +134,11 @@ const deleteProperty = async (req, res) => {
     const property = await Property.findById(req.params.id);
     if (!property) return res.status(404).json({ msg: 'Property not found' });
 
-    // Assuming req.user contains the user ID from authMiddleware
     if (property.owner.toString() !== req.user) {
       return res.status(403).json({ msg: 'Unauthorized: This is not your property' });
     }
 
-    // Use findByIdAndDelete for Mongoose 5.x+, or remove() for older versions
-    await Property.findByIdAndDelete(req.params.id); // Or property.remove() if using Mongoose < 6
+    await Property.findByIdAndDelete(req.params.id);
     res.json({ msg: 'Property deleted successfully' });
   } catch (err) {
     console.error(err);
@@ -151,15 +149,13 @@ const deleteProperty = async (req, res) => {
 //////////// Search properties //////////////////
 const searchProperties = async (req, res) => {
   try {
-    const { q } = req.query; // Get the search query from the URL parameter 'q'
+    const { q } = req.query;
     if (!q) {
       return res.status(400).json({ error: 'Search query parameter "q" is required' });
     }
 
-    // Create a case-insensitive regular expression for searching
     const searchQuery = new RegExp(q, 'i');
 
-    // Find properties that match the query in 'title', 'address', 'description', 'city', or 'state'
     const properties = await Property.find({
       $or: [
         { title: searchQuery },
@@ -168,9 +164,9 @@ const searchProperties = async (req, res) => {
         { city: searchQuery },
         { state: searchQuery }
       ]
-    }).populate('owner', 'username email'); // Optionally populate owner info
+    }).populate('owner', 'username email'); 
 
-    res.json({ properties }); // Send back an object with a 'properties' array
+    res.json({ properties }); 
   } catch (error) {
     console.error('PROPERTY SEARCH ERROR:', error);
     res.status(500).json({ error: 'Failed to search properties' });
@@ -183,5 +179,5 @@ module.exports = {
   getPropertyById,
   updateProperty,
   deleteProperty,
-  searchProperties, // <--- EXPORT THE NEW searchProperties FUNCTION
+  searchProperties, 
 };

@@ -32,11 +32,9 @@ const agreementSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  // ADD THIS 'message' FIELD:
   message: {
     type: String,
-    default: '', // Set a default empty string if no message is provided
-    // You probably don't want 'required: true' for an optional message
+    default: '', 
   },
   status: {
     type: String,

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 const SearchBox = () => {
-  const [properties, setProperties] = useState([]); // Corrected to properties
+  const [properties, setProperties] = useState([]); 
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [noResults, setNoResults] = useState(false);
@@ -21,8 +21,7 @@ const SearchBox = () => {
       setLoading(true);
       setNoResults(false);
 
-      // --- THIS IS THE CRUCIAL FIX: Ensure you are calling YOUR backend for properties ---
-      fetch(`http://localhost:4000/properties/search?q=${query}`) // <-- CORRECT API CALL
+      fetch(`http://localhost:4000/properties/search?q=${query}`)
         .then((response) => {
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -30,14 +29,14 @@ const SearchBox = () => {
           return response.json();
         })
         .then((data) => {
-          if (data.properties) { // Expecting 'properties' array from your backend
+          if (data.properties) { 
             setProperties(data.properties);
             if (data.properties.length === 0) {
               setNoResults(true);
             }
           } else {
             setProperties([]);
-            setNoResults(true); // If backend doesn't return 'properties' array
+            setNoResults(true);
           }
           setLoading(false);
         })
@@ -45,7 +44,7 @@ const SearchBox = () => {
           console.error("Property search failed:", err);
           setLoading(false);
         });
-    }, 500); // Debounce time
+    }, 500); 
 
     return () => clearTimeout(timeoutId);
   }, [query]);
@@ -53,12 +52,9 @@ const SearchBox = () => {
   const handleEnter = (e) => {
     e.preventDefault();
     if (query.trim()) {
-      // Navigate to a dedicated search results page if you have one
-      // For now, let's just clear the suggestions and focus on the dropdown
-      // If you want a full search results page, uncomment/adjust this:
-      // navigate(`/properties/search-results/${query}`);
-      setQuery(""); // Clear query after navigating or pressing enter
-      setProperties([]); // Clear suggestions
+
+      setQuery("");
+      setProperties([]); 
     }
   };
 
@@ -68,7 +64,7 @@ const SearchBox = () => {
         <input
           className="text-amber-50 bg-blue-900 px-4 py-2 rounded focus:outline-none focus:ring focus:ring-gray-600"
           type="text"
-          placeholder="Search properties..." // Changed placeholder
+          placeholder="Search properties..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
@@ -86,24 +82,23 @@ const SearchBox = () => {
         </div>
       )}
 
-      {/* Search Results Dropdown */}
       <div className="absolute z-10 bg-black left-0 right-0 max-h-[300px] overflow-y-auto overflow-x-hidden justify-center shadow-lg">
         {query && !loading && properties.length > 0 && (
           <div className="flex flex-col items-center py-2">
             {properties.map((property) => (
               <div
                 onClick={() => {
-                  // --- THIS IS THE CORRECTED NAVIGATION TO YOUR PROPERTY PAGE ---
-                  navigate(`/property/${property._id}`); // Match the /property/:id route from App.jsx
-                  setQuery(""); // Clear query after navigating
-                  setProperties([]); // Clear suggestions
+
+                  navigate(`/property/${property._id}`); 
+                  setQuery(""); 
+                  setProperties([]); 
                 }}
-                key={property._id} // Use property._id for the key
+                key={property._id}
                 className="bg-gray-800 text-white m-1 p-3 rounded-lg w-full max-w-[calc(100%-16px)] cursor-pointer hover:bg-gray-700 transition-colors"
               >
                 <div className="flex flex-col items-center text-center">
                   <h2 className="text-lg font-semibold hover:text-cyan-400 line-clamp-1">
-                    {property.title || property.propertyName || "Untitled Property"} {/* Use property.title or property.propertyName */}
+                    {property.title || property.propertyName || "Untitled Property"} 
                   </h2>
                   {property.address && property.title && (
                     <p className="text-sm text-gray-400 line-clamp-1">{property.address}</p>

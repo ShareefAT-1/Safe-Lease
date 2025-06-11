@@ -9,7 +9,7 @@ const LandlordRequests = () => {
     const fetchRequests = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await axios.get('http://localhost:4000/agreements/requests', { // Corrected: Absolute URL
+        const res = await axios.get('http://localhost:4000/agreements/requests', { 
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -26,7 +26,6 @@ const LandlordRequests = () => {
   const handleResponse = async (id, status) => {
     try {
       const token = localStorage.getItem('token');
-      // CORRECTED LINE: Use the full backend URL for the PUT request
       await axios.put(`http://localhost:4000/agreements/respond/${id}`, { status }, {
         headers: { Authorization: `Bearer ${token}` },
       });

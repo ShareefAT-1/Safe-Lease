@@ -1,21 +1,19 @@
-// src/main.jsx
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BrowserRouter } from 'react-router-dom'; // Keep this import
-import './index.css'; // Your global CSS
+import { BrowserRouter } from 'react-router-dom'; 
+import './index.css'; 
 import App from './App.jsx';
 
-// Import your AuthProvider and Toaster
 import { AuthProvider } from './context/AuthContext';
-import { Toaster } from 'react-hot-toast'; // You can keep this here or in App.jsx, but here is often preferred for global access.
+import { Toaster } from 'react-hot-toast'; 
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <BrowserRouter> {/* This is the ONE AND ONLY BrowserRouter */}
-      <AuthProvider> {/* AuthProvider makes auth context available to all children */}
-        <App /> {/* Your main application component */}
+    <BrowserRouter> 
+      <AuthProvider> 
+        <App /> 
       </AuthProvider>
-      <Toaster position="top-right" /> {/* Toaster for global notifications */}
+      <Toaster position="top-right" /> 
     </BrowserRouter>
   </StrictMode>
 );

@@ -4,7 +4,7 @@ export default function Footer() {
   return (
     <footer className="bg-gray-100 text-gray-600 py-10 shadow-inner">
       <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-8">
-        {/* 1. About / Description */}
+
         <div>
           <h3 className="text-lg font-bold text-gray-800 mb-3">SafeLease</h3>
           <p className="text-sm text-gray-500">
@@ -13,7 +13,6 @@ export default function Footer() {
           <p className="mt-4 text-xs text-gray-400">&copy; 2025 SafeLease. All rights reserved.</p>
         </div>
 
-        {/* 2. Quick Links */}
         <div>
           <h3 className="text-lg font-bold text-gray-800 mb-3">Quick Links</h3>
           <ul className="space-y-2 text-sm">
@@ -26,7 +25,6 @@ export default function Footer() {
           </ul>
         </div>
 
-        {/* 3. Newsletter */}
         <div>
           <h3 className="text-lg font-bold text-gray-800 mb-3">Subscribe to Newsletter</h3>
           <p className="text-sm text-gray-500 mb-4">
@@ -47,7 +45,6 @@ export default function Footer() {
           </form>
         </div>
 
-        {/* 4. Social + Contact Info */}
         <div>
           <h3 className="text-lg font-bold text-gray-800 mb-3">Connect with Us</h3>
           <div className="flex space-x-4 mb-4 text-gray-400 text-xl">
