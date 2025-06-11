@@ -1,11 +1,14 @@
+// src/pages/Login.jsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axiosbase from "../config/axios-config";
 import { toast } from "react-hot-toast";
+import { useAuth } from '../context/AuthContext'; // Import useAuth hook
 
 const Login = () => {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const navigate = useNavigate();
+  const { login } = useAuth(); // Get the login function from context
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -22,23 +25,19 @@ const Login = () => {
 
     try {
       const response = await axiosbase.post("/auth/login", formData);
-      const { token, user } = response.data;
+      const { token, user } = response.data; // Destructure token and user
 
-      localStorage.setItem("user_access_token", token);
-      localStorage.setItem("user_id", user._id);
-      localStorage.setItem("user_isloggedin", "true");
-      localStorage.setItem("username", user.name);
-      localStorage.setItem("profilePic", user.profilePic || ""); 
+      // Use the context's login function to save auth data
+      // This will handle clearing old localStorage keys and setting new ones
+      login(token, user); // Pass token and user data to context
 
       toast.success("Login Successful!");
-      // navigate("/");
-      window.location.replace('/')
-
+      navigate("/");
       setFormData({ email: "", password: "" });
     } catch (error) {
-      const msg = error.response?.data?.message || "Login Failed!";
+      const msg = error.response?.data?.message || "Login Failed! Please check your credentials.";
       toast.error(msg);
-      console.error("Login failed:", error);
+      console.error("Login failed:", error.response?.data || error.message || error);
     }
   };
 

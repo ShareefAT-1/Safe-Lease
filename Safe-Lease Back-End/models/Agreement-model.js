@@ -32,6 +32,18 @@ const agreementSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  // ADD THIS 'message' FIELD:
+  message: {
+    type: String,
+    default: '', // Set a default empty string if no message is provided
+    // You probably don't want 'required: true' for an optional message
+  },
+  status: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected', 'signed', 'cancelled'],
+    default: 'pending',
+    required: true,
+  },
   signed: {
     type: Boolean,
     default: false,

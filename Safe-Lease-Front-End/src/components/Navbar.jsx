@@ -1,50 +1,21 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react"; // Keep useEffect if needed for other things, but auth logic moves
 import { NavLink, useNavigate } from "react-router-dom";
 import SearchBox from "./SearchBox";
 import toast from "react-hot-toast";
+import { useAuth } from "../context/AuthContext"; // Import the useAuth hook
 
 export default function Navbar() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [username, setUsername] = useState("");
-  const [profilePic, setProfilePic] = useState(null);
+  // Use the auth context to get authentication state and user data
+  const { isAuthenticated, user, logout } = useAuth();
   const navigate = useNavigate();
 
-  useEffect(() => {
-
-    console.log("gh")
-
-    const loggedIn = localStorage.getItem("user_isloggedin");
-    const userNameFromStorage = localStorage.getItem("username");
-    const profilePicFromStorage = localStorage.getItem("profilePic");
-
-
-    if (loggedIn === "true") {
-      setIsLoggedIn(true);
-      setUsername(userNameFromStorage || "User");
-      setProfilePic(profilePicFromStorage || null);
-    } else {
-      setIsLoggedIn(false);
-      setUsername("");
-      setProfilePic(null);
-    }
-  },[]);
-
-  
-
-  console.log(isLoggedIn);
-  
+  // No need for local useState for isLoggedIn, username, profilePic or their useEffect
+  // because AuthContext manages and provides these reactive states.
+  // The console.log("gh") and console.log(isLoggedIn) inside the component will now reflect
+  // the reactive state from the context.
 
   const handleLogout = () => {
-    localStorage.removeItem("user_access_token");
-    localStorage.removeItem("user_id");
-    localStorage.removeItem("user_isloggedin");
-    localStorage.removeItem("username");
-    localStorage.removeItem("profilePic");
-
-    setIsLoggedIn(false);
-    setUsername("");
-    setProfilePic(null);
-
+    logout(); // Call the logout function from AuthContext
     toast.success("Logged out successfully!");
     navigate("/login");
   };
@@ -107,7 +78,8 @@ export default function Navbar() {
           <SearchBox />
         </li>
 
-        {!isLoggedIn ? (
+        {/* Conditional rendering based on isAuthenticated from context */}
+        {!isAuthenticated ? (
           <>
             <li>
               <NavLink
@@ -136,16 +108,19 @@ export default function Navbar() {
           </>
         ) : (
           <>
-            <li className="flex items-center space-x-2 font-semibold text-blue-600">
-              {profilePic && (
-                <img
-                  src={profilePic}
-                  alt="Profile"
-                  className="w-8 h-8 rounded-full object-cover"
-                />
-              )}
-              <span>{username}</span>
-            </li>
+            {/* Display profile pic and username if user object exists */}
+            {user && (
+              <li className="flex items-center space-x-2 font-semibold text-blue-600">
+                {user.profilePic && (
+                  <img
+                    src={user.profilePic}
+                    alt="Profile"
+                    className="w-8 h-8 rounded-full object-cover" // Ensure consistent sizing
+                  />
+                )}
+                <span>{user.username}</span> {/* Use user.username from context */}
+              </li>
+            )}
             <li>
               <button
                 onClick={handleLogout}

@@ -1,16 +1,21 @@
+// src/pages/Register.jsx
 import { useState } from "react";
 import axiosbase from "../config/axios-config";
 import { toast } from "react-hot-toast";
-import { useNavigate } from "react-router-dom"; 
+import { useNavigate } from "react-router-dom";
+import { useAuth } from '../context/AuthContext'; // Import useAuth hook
 
 const Register = () => {
-  const Navigate = useNavigate();
+  const navigate = useNavigate();
+  const { login } = useAuth(); // Get the login function from context
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
     role: "",
-    phone: "",       
+    phone: "",
+    profilePic: "",
   });
 
   const handleChange = (e) => {
@@ -26,23 +31,29 @@ const Register = () => {
 
     const { name, email, password, role, phone } = formData;
     if (!name || !email || !password || !role || !phone) {
-      toast.error("Please fill in all fields including phone!");
+      toast.error("Please fill in all required fields!");
       return;
+    }
+
+    if (phone.length < 5) {
+        toast.error("Please enter a valid phone number.");
+        return;
     }
 
     try {
       const res = await axiosbase.post("/auth/register", formData);
       const { token, user } = res.data;
 
-      localStorage.setItem("usertoken", token);
-      localStorage.setItem("user", JSON.stringify(user));
+      // Use the context's login function to save auth data
+      login(token, user); // Log in the user after successful registration
 
       toast.success("Registration Successful!");
-      Navigate("/login");
+      navigate("/"); // Redirect to home/dashboard after successful registration and login
       
     } catch (error) {
-      console.error("Registration failed:", error);
-      toast.error(error.response?.data?.message || "Registration Failed!");
+      console.error("Registration failed:", error.response?.data || error.message || error);
+      const msg = error.response?.data?.message || "Registration Failed!";
+      toast.error(msg);
     }
   };
 

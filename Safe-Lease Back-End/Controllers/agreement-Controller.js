@@ -114,11 +114,11 @@ exports.updateAgreementStatus = async (req, res) => {
 
 exports.getRequestsForLandlord = async (req, res) => {
   try {
-    const landlordId = req.user._id;
+    const landlordId = req.user.id; // Correctly get the ID from the JWT payload
 
     const requests = await Agreement.find({ landlord: landlordId, status: 'pending' })
       .populate('tenant', 'name email')
-      .populate('property', 'title');
+      .populate('property', 'title propertyName');
 
     res.json({ requests });
   } catch (err) {

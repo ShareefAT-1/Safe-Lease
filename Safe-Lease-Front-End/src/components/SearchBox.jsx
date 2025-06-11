@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 const SearchBox = () => {
-  const [books, setBooks] = useState([]);
+  const [properties, setProperties] = useState([]); // Corrected to properties
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [noResults, setNoResults] = useState(false);
@@ -12,29 +12,40 @@ const SearchBox = () => {
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (query.trim() === "") {
-        setBooks([]);
+        setProperties([]);
+        setNoResults(false);
+        setLoading(false);
         return;
       }
 
       setLoading(true);
       setNoResults(false);
 
-      fetch(`https://www.dbooks.org/api/search/${query}`)
-        .then((response) => response.json())
+      // --- THIS IS THE CRUCIAL FIX: Ensure you are calling YOUR backend for properties ---
+      fetch(`http://localhost:4000/properties/search?q=${query}`) // <-- CORRECT API CALL
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          return response.json();
+        })
         .then((data) => {
-          if (data.books) {
-            setBooks(data.books);
-            if (data.books.length === 0) {
+          if (data.properties) { // Expecting 'properties' array from your backend
+            setProperties(data.properties);
+            if (data.properties.length === 0) {
               setNoResults(true);
             }
+          } else {
+            setProperties([]);
+            setNoResults(true); // If backend doesn't return 'properties' array
           }
           setLoading(false);
         })
         .catch((err) => {
-          console.error(err);
+          console.error("Property search failed:", err);
           setLoading(false);
         });
-    }, 500); 
+    }, 500); // Debounce time
 
     return () => clearTimeout(timeoutId);
   }, [query]);
@@ -42,7 +53,12 @@ const SearchBox = () => {
   const handleEnter = (e) => {
     e.preventDefault();
     if (query.trim()) {
-      navigate(`/searchResults/${query}`);
+      // Navigate to a dedicated search results page if you have one
+      // For now, let's just clear the suggestions and focus on the dropdown
+      // If you want a full search results page, uncomment/adjust this:
+      // navigate(`/properties/search-results/${query}`);
+      setQuery(""); // Clear query after navigating or pressing enter
+      setProperties([]); // Clear suggestions
     }
   };
 
@@ -52,7 +68,7 @@ const SearchBox = () => {
         <input
           className="text-amber-50 bg-blue-900 px-4 py-2 rounded focus:outline-none focus:ring focus:ring-gray-600"
           type="text"
-          placeholder="Search books..."
+          placeholder="Search properties..." // Changed placeholder
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
@@ -66,29 +82,37 @@ const SearchBox = () => {
 
       {noResults && !loading && (
         <div className="absolute z-10 w-full h-64 flex justify-center items-center bg-black opacity-70 text-white">
-          <p>No results found</p>
+          <p>No properties found</p>
         </div>
       )}
 
-      <div className="flex flex-wrap absolute z-10 bg-black h-[300px] overflow-auto justify-center">
-        {query && !loading && books.length > 0 && books.map((book) => (
-          <div
-            onClick={() => {
-              navigate(`/bookdetails/${book.id}`);
-              setQuery("");
-            }}
-            key={book.id}
-            className="bg-gray-800 text-white m-3 p-4 rounded-lg w-[300px] cursor-pointer"
-          >
-            <div className="flex flex-col items-center">
-              <div className="text-center">
-                <h2 className="text-lg font-semibold hover:text-cyan-400 line-clamp-1">
-                  {book.title}
-                </h2>
+      {/* Search Results Dropdown */}
+      <div className="absolute z-10 bg-black left-0 right-0 max-h-[300px] overflow-y-auto overflow-x-hidden justify-center shadow-lg">
+        {query && !loading && properties.length > 0 && (
+          <div className="flex flex-col items-center py-2">
+            {properties.map((property) => (
+              <div
+                onClick={() => {
+                  // --- THIS IS THE CORRECTED NAVIGATION TO YOUR PROPERTY PAGE ---
+                  navigate(`/property/${property._id}`); // Match the /property/:id route from App.jsx
+                  setQuery(""); // Clear query after navigating
+                  setProperties([]); // Clear suggestions
+                }}
+                key={property._id} // Use property._id for the key
+                className="bg-gray-800 text-white m-1 p-3 rounded-lg w-full max-w-[calc(100%-16px)] cursor-pointer hover:bg-gray-700 transition-colors"
+              >
+                <div className="flex flex-col items-center text-center">
+                  <h2 className="text-lg font-semibold hover:text-cyan-400 line-clamp-1">
+                    {property.title || property.propertyName || "Untitled Property"} {/* Use property.title or property.propertyName */}
+                  </h2>
+                  {property.address && property.title && (
+                    <p className="text-sm text-gray-400 line-clamp-1">{property.address}</p>
+                  )}
+                </div>
               </div>
-            </div>
+            ))}
           </div>
-        ))}
+        )}
       </div>
     </div>
   );

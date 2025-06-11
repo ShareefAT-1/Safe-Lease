@@ -1,4 +1,4 @@
-const Property = require('../models/Property-model');
+const Property = require('../models/Property-model'); // Make sure this path is correct
 
 //////////// Create new property //////////////////
 const createProperty = async (req, res) => {
@@ -81,6 +81,7 @@ const updateProperty = async (req, res) => {
     const property = await Property.findById(req.params.id);
     if (!property) return res.status(404).json({ msg: 'Property not found' });
 
+    // Assuming req.user contains the user ID from authMiddleware
     if (property.owner.toString() !== req.user) {
       return res.status(403).json({ msg: 'Unauthorized: This is not your property' });
     }
@@ -99,7 +100,7 @@ const updateProperty = async (req, res) => {
       area,
       available,
       listingType
-    } = req.body;   
+    } = req.body;
 
     property.title = title;
     property.description = description;
@@ -133,15 +134,46 @@ const deleteProperty = async (req, res) => {
     const property = await Property.findById(req.params.id);
     if (!property) return res.status(404).json({ msg: 'Property not found' });
 
+    // Assuming req.user contains the user ID from authMiddleware
     if (property.owner.toString() !== req.user) {
       return res.status(403).json({ msg: 'Unauthorized: This is not your property' });
     }
 
-    await property.remove();
+    // Use findByIdAndDelete for Mongoose 5.x+, or remove() for older versions
+    await Property.findByIdAndDelete(req.params.id); // Or property.remove() if using Mongoose < 6
     res.json({ msg: 'Property deleted successfully' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ msg: 'Failed to delete property' });
+  }
+};
+
+//////////// Search properties //////////////////
+const searchProperties = async (req, res) => {
+  try {
+    const { q } = req.query; // Get the search query from the URL parameter 'q'
+    if (!q) {
+      return res.status(400).json({ error: 'Search query parameter "q" is required' });
+    }
+
+    // Create a case-insensitive regular expression for searching
+    const searchQuery = new RegExp(q, 'i');
+
+    // Find properties that match the query in 'title', 'address', 'description', 'city', or 'state'
+    const properties = await Property.find({
+      $or: [
+        { title: searchQuery },
+        { address: searchQuery },
+        { description: searchQuery },
+        { city: searchQuery },
+        { state: searchQuery }
+      ]
+    }).populate('owner', 'username email'); // Optionally populate owner info
+
+    res.json({ properties }); // Send back an object with a 'properties' array
+  } catch (error) {
+    console.error('PROPERTY SEARCH ERROR:', error);
+    res.status(500).json({ error: 'Failed to search properties' });
   }
 };
 
@@ -151,4 +183,5 @@ module.exports = {
   getPropertyById,
   updateProperty,
   deleteProperty,
+  searchProperties, // <--- EXPORT THE NEW searchProperties FUNCTION
 };

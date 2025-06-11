@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import axios from 'axios';
+import axios from 'axios'; // Assuming axiosbase is aliased to axios
 import toast from 'react-hot-toast';
 
 const RequestAgreement = ({ propertyId, landlordId, tenantId }) => {
@@ -9,9 +9,6 @@ const RequestAgreement = ({ propertyId, landlordId, tenantId }) => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
-  // console.log("tenantId:", tenantId);
-
-
   const handleRequest = async () => {
     if (!agreementTerms || !rentAmount || !startDate || !endDate) {
       toast.error('Please fill in all required fields');
@@ -19,11 +16,16 @@ const RequestAgreement = ({ propertyId, landlordId, tenantId }) => {
     }
 
     try {
-      const token = localStorage.getItem('user_access_token');
+      // Changed to 'token' for consistency
+      const token = localStorage.getItem('token'); 
+      if (!token) {
+          toast.error("You must be logged in to send a request.");
+          return;
+      }
       const res = await axios.post('http://localhost:4000/agreements/request', {
         propertyId,
         landlordId,
-        tenant: tenantId,  
+        tenant: tenantId,
         agreementTerms,
         rentAmount: Number(rentAmount),
         startDate,
@@ -34,8 +36,16 @@ const RequestAgreement = ({ propertyId, landlordId, tenantId }) => {
       });
 
       toast.success(res.data.message);
+      // Optional: Clear form after successful request
+      setMessage('');
+      setAgreementTerms('');
+      setRentAmount('');
+      setStartDate('');
+      setEndDate('');
+
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to send request');
+      console.error('Request Agreement failed:', err.response?.data || err.message || err);
     }
   };
 
@@ -91,6 +101,6 @@ const RequestAgreement = ({ propertyId, landlordId, tenantId }) => {
       </button>
     </div>
   );
-};
+}
 
 export default RequestAgreement;

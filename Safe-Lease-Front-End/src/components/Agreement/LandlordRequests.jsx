@@ -9,10 +9,10 @@ const LandlordRequests = () => {
     const fetchRequests = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await axios.get('/agreements/requests', {
+        const res = await axios.get('http://localhost:4000/agreements/requests', { // Corrected: Absolute URL
           headers: { Authorization: `Bearer ${token}` },
         });
-        
+
         setRequests(res.data?.requests || []);
       } catch (err) {
         toast.error('Failed to fetch requests');
@@ -26,7 +26,8 @@ const LandlordRequests = () => {
   const handleResponse = async (id, status) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.put(`/agreements/respond/${id}`, { status }, {
+      // CORRECTED LINE: Use the full backend URL for the PUT request
+      await axios.put(`http://localhost:4000/agreements/respond/${id}`, { status }, {
         headers: { Authorization: `Bearer ${token}` },
       });
       toast.success(`Request ${status}`);
@@ -45,7 +46,7 @@ const LandlordRequests = () => {
       ) : (
         requests.map((req) => (
           <div key={req._id} className="border p-4 mb-3 rounded">
-            <p><strong>Property:</strong> {req?.property?.title || "Unknown"}</p>
+            <p><strong>Property:</strong> {req?.property?.title || req?.property?.propertyName || "Unknown"}</p>
             <p><strong>Tenant:</strong> {req?.tenant?.name || "Unknown"}</p>
             <p><strong>Message:</strong> {req?.message || "No message provided."}</p>
             <button
