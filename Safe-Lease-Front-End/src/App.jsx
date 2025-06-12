@@ -1,6 +1,6 @@
+// src/App.jsx
 import React from "react";
 import { Route, Routes } from "react-router-dom"; 
-
 
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
@@ -13,9 +13,11 @@ import AllProducts from "./pages/AllProducts";
 import SingleProperty from "./pages/SingleProperty";
 
 import PropertyForm from "./components/PropertyForm";
+import CreateAgreementPage from "./pages/CreateAgreementPage"; // <-- Import the new page
 
 import TestLandlordRequests from "./pages/TestLandlordRequests";
 import TestRequestAgreement from "./pages/TestRequestAgreement";
+
 
 function App() {
   return (
@@ -30,7 +32,9 @@ function App() {
         <Route path="/property/:id" element={<SingleProperty />} />
         <Route path="/create-property" element={<PropertyForm />} />
 
-        {/* Test Routes */}
+        <Route path="/create-agreement/:propertyId/:landlordId" element={<CreateAgreementPage />} />
+
+        {/* Test routes */}
         <Route path="/test/landlord-requests" element={<TestLandlordRequests />} />
         <Route path="/test/request-agreement" element={<TestRequestAgreement />} />
       </Routes>

@@ -34,7 +34,7 @@ const agreementSchema = new mongoose.Schema({
   },
   message: {
     type: String,
-    default: '', 
+    default: '',
   },
   status: {
     type: String,
@@ -45,6 +45,15 @@ const agreementSchema = new mongoose.Schema({
   signed: {
     type: Boolean,
     default: false,
+  },
+  // --- ADD THESE NEW FIELDS FOR SIGNATURE IMAGES ---
+  landlordSignatureImage: { // Path to landlord's signature image
+    type: String,
+    default: null, // Null until signed
+  },
+  tenantSignatureImage: { // Path to tenant's signature image
+    type: String,
+    default: null, // Null until signed
   },
 }, { timestamps: true });
 
