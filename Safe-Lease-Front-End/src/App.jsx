@@ -13,7 +13,7 @@ import AllProducts from "./pages/AllProducts";
 import SingleProperty from "./pages/SingleProperty";
 
 import PropertyForm from "./components/PropertyForm";
-import CreateAgreementPage from "./pages/CreateAgreementPage"; // <-- Import the new page
+import CreateAgreementPage from "./pages/CreateAgreementPage"; 
 
 import TestLandlordRequests from "./pages/TestLandlordRequests";
 import TestRequestAgreement from "./pages/TestRequestAgreement";
