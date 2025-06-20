@@ -1,30 +1,27 @@
 import React, { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom"; // Import useNavigate
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import { FaMapMarkerAlt, FaBed, FaBath, FaRulerCombined, FaCheckCircle, FaTimesCircle, FaCommentDots } from "react-icons/fa";
 import { MdOutlineHouse, MdOutlineDashboardCustomize } from "react-icons/md";
-import { FiPhoneCall } from "react-icons/fi";
+import { FiPhoneCall } from "react-icons/fi"; // Keeping this for the generic contact icon
 
-import ChatComponent from "../components/ChatComponent"; // Import the new ChatComponent
+import ChatComponent from "../components/ChatComponent";
 
 const SingleProperty = () => {
-    const { id } = useParams(); // Property ID from URL
-    const [product, setProduct] = useState(null); // Property data
+    const { id } = useParams();
+    const navigate = useNavigate(); // Initialize useNavigate hook
+    const [product, setProduct] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [showChat, setShowChat] = useState(false); // State to control chat modal visibility
-    const [currentUserId, setCurrentUserId] = useState(null); // State for current authenticated user's ID
+    const [showChat, setShowChat] = useState(false);
+    const [currentUserId, setCurrentUserId] = useState(null);
 
     useEffect(() => {
-        // --- DEBUG STEP 1: Check if ID is being received ---
-        console.log("Property ID from URL:", id); 
-
-        const token = localStorage.getItem('token'); // Get token once
+        const token = localStorage.getItem('token'); 
 
         const fetchPropertyDetails = async () => {
             try {
-                // Handle case where ID might be missing from URL params
                 if (!id) {
                     console.warn("No property ID found in URL parameters.");
                     setError("No property ID provided. Cannot load details.");
@@ -32,14 +29,13 @@ const SingleProperty = () => {
                     return;
                 }
                 const res = await axios.get(`http://localhost:4000/properties/${id}`);
-                setProduct(res.data); // Assuming res.data is directly the property object
+                setProduct(res.data);
                 setLoading(false);
             } catch (err) {
                 console.error("Error fetching property:", err);
-                // Provide a more informative error message if available from backend
                 const errorMessage = err.response && err.response.data && err.response.data.msg 
-                                     ? err.response.data.msg 
-                                     : "Oops! Couldn't load property details. Please try refreshing.";
+                                   ? err.response.data.msg 
+                                   : "Oops! Couldn't load property details. Please try refreshing.";
                 setError(errorMessage);
                 setLoading(false);
             }
@@ -47,18 +43,16 @@ const SingleProperty = () => {
 
         const fetchCurrentUserId = async () => {
             if (!token) {
-                setCurrentUserId(null); // No token, no user ID
+                setCurrentUserId(null);
                 return;
             }
             try {
-                // This endpoint requires authentication middleware in your backend
                 const res = await axios.get('http://localhost:4000/auth/me', { 
                     headers: { Authorization: `Bearer ${token}` }
                 });
-                setCurrentUserId(res.data.user._id); // Assuming res.data.user contains _id
+                setCurrentUserId(res.data.user._id);
             } catch (error) {
                 console.error("Error fetching current user:", error);
-                // If token is expired or invalid, clear token and currentUserId
                 localStorage.removeItem('token'); 
                 setCurrentUserId(null);
                 toast.error("Session expired or invalid. Please log in again.");
@@ -66,10 +60,9 @@ const SingleProperty = () => {
         };
 
         fetchPropertyDetails();
-        fetchCurrentUserId(); // Call the function to fetch current user ID
-    }, [id]); // Re-run when property ID changes
+        fetchCurrentUserId();
+    }, [id]);
 
-    // Loading, Error, and Not Found states
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
@@ -99,7 +92,7 @@ const SingleProperty = () => {
         );
     }
 
-    if (!product) { // If product is null after loading and no error, this means property not found
+    if (!product) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-8 text-center">
                 <img src="https://via.placeholder.com/150/cccccc/ffffff?text=Not+Found" alt="Property Not Found" className="mb-6 rounded-full shadow-lg" />
@@ -115,7 +108,30 @@ const SingleProperty = () => {
         );
     }
 
-    // The conversation ID for this property's chat will be the property's _id
+    // --- Unified Data Retrieval Logic ---
+    const displayTitle = product.title || product.propertyName || "Untitled Property";
+    const displayDescription = product.description || 'No description provided.';
+    const displayAddress = product.address || product.location || '';
+    const displayCity = product.city || '';
+    const displayState = product.state || '';
+    const displayZipCode = product.zipCode || '';
+    
+    // Combine address parts, then clean up extra commas/spaces
+    const fullLocation = `${displayAddress}${displayAddress && (displayCity || displayState || displayZipCode) ? ', ' : ''}${displayCity}${displayCity && (displayState || displayZipCode) ? ', ' : ''}${displayState}${displayState && displayZipCode ? ' ' : ''}${displayZipCode}`
+        .replace(/,(\s*,){1,}/g, ',') // Remove multiple commas
+        .replace(/^,/, '') // Remove leading comma
+        .replace(/,$/, '') // Remove trailing comma
+        .trim();
+
+    const displayPropertyType = product.propertyType || product.type || 'N/A';
+    const displayListingType = product.listingType || product.status || (product.available ? "Available" : "Unavailable") || 'N/A';
+    const displayArea = product.area || product.size;
+    const displayBedrooms = product.bedrooms || product.rooms;
+    const displayBathrooms = product.bathrooms;
+    const displayPrice = product.price;
+    const displayAvailable = typeof product.available === 'boolean' ? product.available : true;
+    const displayImageUrl = product.imageUrl || '';
+
     const conversationId = product._id; 
     
     return (
@@ -123,20 +139,20 @@ const SingleProperty = () => {
             <div className="max-w-7xl mx-auto bg-white rounded-3xl shadow-3xl overflow-hidden animate-fade-in-up">
                 {/* Hero Image and Title Section */}
                 <div className="relative h-[400px] md:h-[600px] lg:h-[700px] overflow-hidden group">
-                    {product.imageUrl && ( // Check if imageUrl exists before rendering img
+                    {displayImageUrl && ( 
                         <img
-                            src={product.imageUrl || ''} // Provide fallback for src to prevent broken image icon
-                            alt={product.title || "Property Image"} // Changed product.propertyName to product.title
+                            src={displayImageUrl} 
+                            alt={displayTitle || "Property Image"} 
                             className="w-full h-full object-cover object-center transform transition-transform duration-700 ease-in-out group-hover:scale-110"
                         />
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end p-8 md:p-12">
                         <div className="text-white">
                             <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold mb-4 drop-shadow-2xl leading-tight">
-                                {product.title || "Untitled Property"} {/* Changed product.propertyName to product.title */}
+                                {displayTitle} 
                             </h1>
                             <p className="text-xl md:text-2xl text-gray-200 drop-shadow-xl max-w-2xl">
-                                {product.description || 'No description provided.'}
+                                {displayDescription}
                             </p>
                         </div>
                     </div>
@@ -151,23 +167,23 @@ const SingleProperty = () => {
                         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-6 border-b border-gray-200">
                             <div className="mb-4 sm:mb-0">
                                 <span className="block text-4xl md:text-5xl font-extrabold text-blue-700 mb-1 leading-none">
-                                    ₹{product.price?.toLocaleString() || 'N/A'} {/* Added null check */}
+                                    ₹{displayPrice?.toLocaleString() || 'N/A'} 
                                 </span>
                                 <span className="text-lg text-gray-500 font-medium">Estimated Price</span>
                             </div>
                             <div
                                 className={`flex items-center gap-2 font-bold text-lg px-6 py-3 rounded-full shadow-lg transition-colors duration-300 transform hover:scale-105 ${
-                                    product.available
+                                    displayAvailable
                                         ? "bg-green-600 text-white"
                                         : "bg-red-600 text-white"
                                 }`}
                             >
-                                {product.available ? (
+                                {displayAvailable ? (
                                     <FaCheckCircle className="text-2xl" />
                                 ) : (
                                     <FaTimesCircle className="text-2xl" />
                                 )}
-                                {product.available ? "Currently Available" : "Sold Out"}
+                                {displayAvailable ? "Currently Available" : "Sold Out"}
                             </div>
                         </div>
 
@@ -175,20 +191,18 @@ const SingleProperty = () => {
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                             <Detail 
                                 label="Location" 
-                                // Concatenate and clean up address fields, providing 'N/A' if all are empty
-                                value={`${product.address || ''}, ${product.city || ''}, ${product.state || ''} ${product.zipCode || ''}`.trim().replace(/,(\s*,){1,}/g, ',').replace(/^,/, '').replace(/,$/, '').trim() || 'N/A'} 
+                                value={fullLocation || 'N/A'}
                                 icon={<FaMapMarkerAlt />} 
                             /> 
-                            <Detail label="Property Type" value={product.propertyType || 'N/A'} icon={<MdOutlineHouse />} /> {/* Changed product.type to product.propertyType */}
-                            {/* Assuming 'status' is not directly saved, using listingType or availability as a stand-in */}
-                            <Detail label="Current Status" value={product.listingType || (product.available ? "Available" : "Unavailable")} icon={<MdOutlineDashboardCustomize />} /> 
-                            <Detail label="Area Size" value={`${product.area?.toLocaleString() || 'N/A'} sqft`} icon={<FaRulerCombined />} /> {/* Changed product.size to product.area, added null check */}
-                            <Detail label="Bedrooms" value={product.bedrooms || 'N/A'} icon={<FaBed />} /> {/* Changed product.rooms to product.bedrooms, added null check */}
-                            <Detail label="Bathrooms" value={product.bathrooms || 'N/A'} icon={<FaBath />} /> {/* Added null check */}
+                            <Detail label="Property Type" value={displayPropertyType} icon={<MdOutlineHouse />} /> 
+                            <Detail label="Current Status" value={displayListingType} icon={<MdOutlineDashboardCustomize />} /> 
+                            <Detail label="Area Size" value={`${displayArea?.toLocaleString() || 'N/A'} sqft`} icon={<FaRulerCombined />} /> 
+                            <Detail label="Bedrooms" value={displayBedrooms || 'N/A'} icon={<FaBed />} /> 
+                            <Detail label="Bathrooms" value={displayBathrooms || 'N/A'} icon={<FaBath />} /> 
                         </div>
 
                         {/* Features Section */}
-                        {product.features && product.features.length > 0 && ( // Ensure product.features exists and is not empty
+                        {product.features && product.features.length > 0 && ( 
                             <div className="bg-gray-50 p-6 rounded-xl shadow-inner border border-gray-100">
                                 <h3 className="text-2xl font-bold text-gray-800 mb-6 border-b-2 pb-3 border-blue-200">Exclusive Features</h3>
                                 <div className="flex flex-wrap gap-3 md:gap-4">
@@ -205,14 +219,13 @@ const SingleProperty = () => {
                         )}
                     </div>
 
-                    {/* Right Column: Call to Action / Agent Info (Placeholder) */}
+                    {/* --- Right Column: Call to Action / Agent Info (UPDATED) --- */}
                     <div className="lg:col-span-1 flex flex-col space-y-6">
-                        {/* Action Buttons Section */}
                         <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-100 flex flex-col gap-4">
                             <h3 className="text-2xl font-bold text-gray-800 mb-4 text-center">Take Action</h3>
 
-                            {/* Request Lease Agreement Button */}
-                            {product.available && product.owner && product.owner._id && currentUserId && currentUserId !== product.owner._id && (
+                            {/* Request Lease Agreement Button (Visible only if eligible) */}
+                            {displayAvailable && product.owner && product.owner._id && currentUserId && currentUserId !== product.owner._id && (
                                 <Link
                                     to={`/create-agreement/${product._id}/${product.owner._id}`}
                                     className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-xl text-lg transition-all duration-300 ease-in-out transform hover:-translate-y-1 hover:shadow-2xl focus:outline-none focus:ring-4 focus:ring-green-300 flex items-center justify-center gap-3"
@@ -221,8 +234,9 @@ const SingleProperty = () => {
                                 </Link>
                             )}
 
-                            {/* Chat with Landlord Button */}
-                            {currentUserId && product.owner && product.owner._id && currentUserId !== product.owner._id && (
+                            {/* Conditional Contact Button: Chat with Landlord or Login/General Contact */}
+                            {currentUserId && product.owner && product.owner._id && currentUserId !== product.owner._id ? (
+                                // User is logged in and not the owner: show "Chat with Landlord"
                                 <button
                                     type="button"
                                     onClick={() => setShowChat(true)}
@@ -230,22 +244,33 @@ const SingleProperty = () => {
                                 >
                                     <FaCommentDots className="text-2xl" /> Chat with Landlord
                                 </button>
+                            ) : (
+                                // User is not logged in, or is the owner: show a generic contact button
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (!currentUserId) {
+                                            toast.error("Please log in to chat with the landlord.");
+                                            // Optional: Redirect to login page
+                                            // navigate('/login'); 
+                                        } else {
+                                            // This case handles when the current user IS the owner of the property
+                                            toast("You are the owner of this property.", { icon: 'ℹ️' });
+                                            // You might want to add a different action here, e.g., a link to support, or no action.
+                                        }
+                                    }}
+                                    className="w-full bg-blue-600 text-white hover:bg-blue-700 font-bold py-3 px-6 rounded-xl text-lg transition-all duration-300 ease-in-out transform hover:-translate-y-1 hover:shadow-2xl focus:outline-none focus:ring-4 focus:ring-blue-300 flex items-center justify-center gap-3"
+                                >
+                                    <FiPhoneCall className="text-2xl" /> Contact Seller
+                                </button>
                             )}
-                            
-                            {/* Contact Agent Button - always present for general inquiries */}
-                            <button
-                                type="button"
-                                className="w-full bg-blue-600 text-white hover:bg-blue-700 font-bold py-3 px-6 rounded-xl text-lg transition-all duration-300 ease-in-out transform hover:-translate-y-1 hover:shadow-2xl focus:outline-none focus:ring-4 focus:ring-blue-300 flex items-center justify-center gap-3"
-                            >
-                                <FiPhoneCall className="text-2xl" /> Contact Agent
-                            </button>
                         </div>
                     </div>
                 </div>
             </div>
 
             {/* Chat Modal/Overlay */}
-            {showChat && currentUserId && ( // Only show if chat is toggled AND user is logged in
+            {showChat && currentUserId && ( 
                 <div className="fixed inset-0 bg-gray-800 bg-opacity-75 flex justify-center items-center z-50 p-4">
                     <div className="bg-white rounded-lg shadow-xl w-full max-w-lg h-[90vh] md:h-[75vh] flex flex-col">
                         <div className="p-4 border-b flex justify-between items-center bg-blue-600 text-white rounded-t-lg">
@@ -257,9 +282,9 @@ const SingleProperty = () => {
                                 &times;
                             </button>
                         </div>
-                        <div className="flex-1 overflow-hidden"> {/* Use overflow-hidden to contain chat */}
-                            {/* Pass the property ID as conversationId and the current user's ID */}
-                            <ChatComponent conversationId={conversationId} currentUserId={currentUserId} />
+                        <div className="flex-1 overflow-hidden"> 
+                            {/* Make sure ChatComponent correctly handles the currentUserId and conversationId */}
+                            <ChatComponent conversationId={conversationId} currentUserId={currentUserId} recipientId={product.owner._id} />
                         </div>
                     </div>
                 </div>

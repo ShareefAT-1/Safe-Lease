@@ -1,7 +1,8 @@
-const User = require('../models/User-model');
+const User = require('../models/User-model'); // Make sure this path is correct relative to your controller
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
+// Register User
 const registerUser = async (req, res) => {
     const { name, email, password, role, phone, profilePic } = req.body;
     if (!name || !email || !password || !role || !phone) {
@@ -19,11 +20,11 @@ const registerUser = async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
         const newUser = new User({
-            name, email, password: hashedPassword, role, phone, profilePic, 
+            name, email, password: hashedPassword, role, phone, profilePic,
         });
         await newUser.save();
         const token = jwt.sign(
-            { userId: newUser._id, role: newUser.role }, // <--- CORRECTED: 'userId'
+            { userId: newUser._id, role: newUser.role },
             process.env.JWT_SECRET,
             { expiresIn: '2h' }
         );
@@ -38,6 +39,7 @@ const registerUser = async (req, res) => {
     }
 };
 
+// Login User
 const loginUser = async (req, res) => {
     const { email, password } = req.body;
     try {
@@ -50,7 +52,7 @@ const loginUser = async (req, res) => {
             return res.status(401).json({ message: 'Invalid password' });
         }
         const token = jwt.sign(
-            { userId: user._id, role: user.role }, // <--- CORRECTED: 'userId'
+            { userId: user._id, role: user.role },
             process.env.JWT_SECRET,
             { expiresIn: '2h' }
         );
@@ -65,4 +67,37 @@ const loginUser = async (req, res) => {
     }
 };
 
-module.exports = { registerUser, loginUser };
+// NEW FUNCTION: Get a user by ID
+const getUserById = async (req, res) => {
+    try {
+        const userId = req.params.id; // Get the ID from the URL parameter
+
+        // Find user and exclude password.
+        // Include 'name' as it's used in your other functions.
+        const user = await User.findById(userId).select('-password'); 
+        
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Return only necessary public user details for the frontend
+        res.status(200).json({ 
+            _id: user._id,
+            name: user.name, 
+            email: user.email,
+            role: user.role,
+            phone: user.phone,
+            profilePic: user.profilePic // Include this if it's part of your User model and relevant
+        });
+
+    } catch (error) {
+        console.error('Error fetching user by ID:', error);
+        // Specifically check for invalid MongoDB ObjectId format
+        if (error.name === 'CastError' && error.path === '_id') {
+            return res.status(400).json({ message: 'Invalid user ID format' });
+        }
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+module.exports = { registerUser, loginUser, getUserById }; // Export the new function

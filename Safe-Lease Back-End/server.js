@@ -32,8 +32,8 @@ mongoose.connect(process.env.MONGO_URI)
     .catch(err => console.error('MongoDB connection error:', err));
 
 // Routes
-const authRoutes = require('./routes/auth-route');
-const propertyRoutes = require('./routes/property-route');
+const authRoutes = require('./Routes/auth-route');
+const propertyRoutes = require('./Routes/property-route');
 // const agreementRoutes = require('./routes/agreement-route'); // Uncomment when you create this
 // const userRoutes = require('./routes/user-route'); // COMMENTED OUT: This was causing the error
 

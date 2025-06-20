@@ -1,77 +1,74 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 
 const CreateAgreementPage = () => {
     const navigate = useNavigate();
-    const { propertyId, landlordId } = useParams(); // Get propertyId and landlordId from URL
+    const { propertyId, landlordId } = useParams();
 
-    // State for agreement form fields
     const [formData, setFormData] = useState({
-        property: propertyId || '', // Pre-fill from URL param
-        landlord: landlordId || '', // Pre-fill from URL param
+        property: propertyId || '',
+        landlord: landlordId || '',
         startDate: '',
         endDate: '',
         rentAmount: '',
         agreementTerms: '',
-        message: '', // Add a message field for the request
+        message: '',
     });
     const [submitting, setSubmitting] = useState(false);
-    const [formErrors, setFormErrors] = useState({}); // State for client-side validation errors
+    const [formErrors, setFormErrors] = useState({});
 
-    // State to hold fetched details for display (not for submission logic itself)
     const [propertyDetails, setPropertyDetails] = useState(null);
     const [landlordDetails, setLandlordDetails] = useState(null);
-    const [fetchingDetails, setFetchingDetails] = useState(true); // To show loading state for details
+    const [fetchingDetails, setFetchingDetails] = useState(true);
 
     useEffect(() => {
-        // Redirect or show error if crucial IDs are missing from URL
         if (!propertyId || !landlordId) {
             toast.error("Property ID or Landlord ID is missing in the URL. Cannot create agreement request.");
-            navigate('/properties'); // Or a more appropriate fallback page
+            navigate('/properties');
             return;
         }
 
         const fetchDetails = async () => {
             setFetchingDetails(true);
             try {
-                // Fetch property details
                 const propertyRes = await axios.get(`http://localhost:4000/properties/${propertyId}`, {
                     headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
                 });
-                setPropertyDetails(propertyRes.data.property);
+                // Assuming property-controller's getPropertyById returns the property object directly
+                setPropertyDetails(propertyRes.data);
 
-                // Fetch landlord details (assuming 'users' endpoint for user details)
-                const landlordRes = await axios.get(`http://localhost:4000/users/${landlordId}`, {
+                // --- CORRECTED AXIOS CALL URL HERE ---
+                const landlordRes = await axios.get(`http://localhost:4000/auth/${landlordId}`, {
                     headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
                 });
-                setLandlordDetails(landlordRes.data.user);
+                // Assuming auth-controller's getUserById returns the user object directly
+                setLandlordDetails(landlordRes.data);
 
             } catch (error) {
                 console.error("Error fetching details:", error);
-                toast.error("Failed to load property or landlord details. Please check the URL.");
-                // Optionally disable form submission if critical details can't be loaded
+                const errorMessage = error.response?.data?.message || error.message || "Failed to load property or landlord details. Please check the URL.";
+                toast.error(errorMessage);
             } finally {
                 setFetchingDetails(false);
             }
         };
         fetchDetails();
-    }, [propertyId, landlordId, navigate]); // Add navigate to dependency array
+    }, [propertyId, landlordId, navigate]);
 
     const validateForm = () => {
         const errors = {};
         if (!formData.startDate) errors.startDate = "Start date is required.";
         if (!formData.endDate) errors.endDate = "End date is required.";
-        if (!formData.rentAmount || formData.rentAmount <= 0) errors.rentAmount = "Rent amount must be a positive number.";
-        if (!formData.agreementTerms) errors.agreementTerms = "Agreement terms are required."; // Backend requires this field
+        if (!formData.rentAmount || parseFloat(formData.rentAmount) <= 0) errors.rentAmount = "Rent amount must be a positive number.";
+        if (!formData.agreementTerms) errors.agreementTerms = "Agreement terms are required.";
 
-        // Ensure property and landlord IDs are present from URL params
         if (!propertyId) errors.property = "Property ID is missing in URL.";
         if (!landlordId) errors.landlord = "Landlord ID is missing in URL.";
 
         setFormErrors(errors);
-        return Object.keys(errors).length === 0; // Return true if no errors
+        return Object.keys(errors).length === 0;
     };
 
     const handleChange = (e) => {
@@ -80,7 +77,6 @@ const CreateAgreementPage = () => {
             ...prevData,
             [name]: value,
         }));
-        // Clear error for the field being changed
         if (formErrors[name]) {
             setFormErrors((prevErrors) => {
                 const newErrors = { ...prevErrors };
@@ -93,7 +89,6 @@ const CreateAgreementPage = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // Client-side validation before sending request
         if (!validateForm()) {
             toast.error("Please fill in all required fields correctly.");
             return;
@@ -102,28 +97,38 @@ const CreateAgreementPage = () => {
         setSubmitting(true);
 
         try {
-            // The tenant's request is sent to the /agreements/request endpoint
-            const response = await axios.post('http://localhost:4000/agreements/request', formData, {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                toast.error("You need to be logged in to create an agreement.");
+                setSubmitting(false); // Reset submitting if not logged in
+                return;
+            }
+
+            const agreementData = {
+                propertyId: formData.property,
+                landlordId: formData.landlord,
+                startDate: formData.startDate,
+                endDate: formData.endDate,
+                rentAmount: parseFloat(formData.rentAmount), // Ensure it's a number
+                agreementTerms: formData.agreementTerms,
+                message: formData.message,
+            };
+
+            const response = await axios.post('http://localhost:4000/agreements/request', agreementData, {
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}` // Include your auth token
+                    'Authorization': `Bearer ${token}`
                 }
             });
 
             toast.success(response.data.message || 'Agreement request sent successfully!');
-            navigate('/dashboard'); // Or '/my-requests', '/agreements'
+            navigate('/dashboard');
         } catch (error) {
-            console.error('Error sending agreement request:', error); // Log the full error object for detailed debugging
-            // Access more specific error message from backend if available
-            const errorMessage = error.response?.data?.error || error.message || 'Failed to send agreement request. Please try again.';
+            console.error('Error sending agreement request:', error);
+            const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'Failed to send agreement request. Please try again.';
             toast.error(errorMessage);
 
-            // If it's a 400 validation error from backend, try to map to fields
-            if (error.response && error.response.status === 400 && error.response.data.details) {
-                // This part depends on how specific your backend sends validation errors
-                // For now, it just displays the general message
-            }
         } finally {
-            setSubmitting(false); // Reset submitting state
+            setSubmitting(false);
         }
     };
 
@@ -136,8 +141,7 @@ const CreateAgreementPage = () => {
         );
     }
 
-    // Disable form if crucial IDs are missing (should be caught by useEffect first)
-    const isFormDisabled = !propertyId || !landlordId;
+    const isFormDisabled = !propertyId || !landlordId || !propertyDetails || !landlordDetails;
 
     return (
         <div className="container mx-auto p-4 my-8">
@@ -148,16 +152,15 @@ const CreateAgreementPage = () => {
                 {isFormDisabled && (
                     <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
                         <strong className="font-bold">Error:</strong>
-                        <span className="block sm:inline ml-2">Missing essential information (Property ID or Landlord ID) in the URL.</span>
+                        <span className="block sm:inline ml-2">Missing essential information (Property ID, Landlord ID, or details failed to load).</span>
                     </div>
                 )}
 
-                {/* Display Property and Landlord info if fetched */}
                 {propertyDetails && (
                     <div className="mb-4 p-3 bg-blue-50 rounded-md border border-blue-200">
                         <h2 className="text-lg font-semibold text-blue-700">Property: {propertyDetails.title || propertyDetails.propertyName || 'N/A'}</h2>
-                        <p className="text-sm text-gray-600">Address: {propertyDetails.address || 'N/A'}</p>
-                        <p className="text-sm text-gray-600">Landlord Email: {landlordDetails?.email || 'N/A'}</p>
+                        <p className="text-sm text-gray-600">Address: {propertyDetails.address || propertyDetails.location || 'N/A'}</p>
+                        <p className="text-sm text-gray-600">Price: ₹{propertyDetails.price?.toLocaleString() || 'N/A'}</p>
                     </div>
                 )}
                 {landlordDetails && (
@@ -217,18 +220,15 @@ const CreateAgreementPage = () => {
 
                 {/* Agreement Terms */}
                 <div className="mb-6">
-                    <label htmlFor="agreementTerms" className="block text-gray-700 text-sm font-bold mb-2">Proposed Agreement Terms (Optional):</label>
+                    <label htmlFor="agreementTerms" className="block text-gray-700 text-sm font-bold mb-2">Proposed Agreement Terms:</label>
                     <textarea
                         id="agreementTerms"
                         name="agreementTerms"
                         value={formData.agreementTerms}
                         onChange={handleChange}
                         rows="6"
-                        placeholder="E.g., Pet policy, maintenance responsibilities, etc. (Required by backend, even if optional for user input, it needs content)"
+                        placeholder="E.g., Pet policy, maintenance responsibilities, etc."
                         className={`shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 ${formErrors.agreementTerms ? 'border-red-500' : 'border-gray-300'}`}
-                        // Note: Backend requires this. If it's truly optional for the user,
-                        // you might send an empty string or default text if user leaves it blank.
-                        // Here, it's marked as required by validation.
                         required
                         disabled={isFormDisabled || submitting}
                     ></textarea>
@@ -252,7 +252,7 @@ const CreateAgreementPage = () => {
 
                 <button
                     type="submit"
-                    disabled={submitting || isFormDisabled} // Disable button if submitting or form is fundamentally broken
+                    disabled={submitting || isFormDisabled}
                     className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline w-full transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     {submitting ? 'Sending Request...' : 'Send Lease Request'}
