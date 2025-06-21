@@ -1,31 +1,38 @@
-import React, { useState, useEffect } from 'react';
-import RequestAgreement from '../components/Agreement/RequestAgreement';
+import React from 'react'; 
+import RequestAgreement from '../components/Agreement/RequestAgreement'; 
+import { useAuth } from '../hooks/useAuth'; // Corrected path
 
-const realPropertyId = '681ba0bc120b51741514e0e6';
-const realLandlordId = '68334776e89ba604c7462d0a';
+const realPropertyId = '666e0a8112d8a571f544622b'; 
+const realLandlordId = '666e0a8112d8a571f544622a'; 
 
-const TestRequestAgreement = () => {
-  const [tenantId, setTenantId] = useState(null);
 
-  useEffect(() => {
-    const storedUserId = localStorage.getItem('user_id');
-    setTenantId(storedUserId);
-  }, []);
+const TestRequestAgreement = () => { 
+   const { isAuthenticated, user, loading: authLoading } = useAuth(); 
 
-  if (!tenantId) {
-    return <p>Loading tenant info... Please login first.</p>;
-  }
+   if (authLoading) {
+    return <p className="p-4 text-center">Loading authentication...</p>;
+   }
 
-  return (
-    <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">Test Request Agreement</h1>
-      <RequestAgreement
-        propertyId={realPropertyId}
-        landlordId={realLandlordId}
-        tenantId={tenantId}
-      />
-    </div>
-  );
-};
+   if (!isAuthenticated || user?.role !== 'tenant') { 
+     return (
+        <div className="p-4 text-center text-red-500">
+            <h2 className="text-xl font-bold mb-2">Access Denied</h2>
+            <p>Please log in as a tenant to test agreement requests.</p>
+        </div>
+     ); 
+   } 
 
-export default TestRequestAgreement;
+   return ( 
+     <div className="p-4 bg-gray-100 min-h-screen flex items-center justify-center"> 
+       <div className="w-full max-w-md">
+         <h1 className="text-3xl font-bold mb-6 text-center text-gray-800">Test Request Agreement</h1> 
+         <RequestAgreement 
+           propertyId={realPropertyId} 
+           landlordId={realLandlordId} 
+         /> 
+       </div>
+     </div> 
+   ); 
+ }; 
+
+ export default TestRequestAgreement;

@@ -1,26 +1,29 @@
-// Safe-Lease Back-End/models/Message-model.js
 const mongoose = require('mongoose');
 
 const messageSchema = new mongoose.Schema({
-    // 'conversation' will likely be the property ID for buyer-seller chats
     conversation: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Property', // Refers to the Property model
-        required: true
+        type: String, // Or ObjectId, if linking to a specific conversation document
+        required: true,
+        index: true // For efficient querying
     },
     sender: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User', // Refers to your User model
-        required: true
+        required: true,
     },
     content: {
         type: String,
-        required: true
+        required: true,
+        trim: true,
     },
     timestamp: {
         type: Date,
-        default: Date.now
+        default: Date.now,
+    },
+    read: {
+        type: Boolean,
+        default: false,
     }
-}, { timestamps: true }); // Mongoose will add createdAt and updatedAt automatically
+});
 
 module.exports = mongoose.model('Message', messageSchema);

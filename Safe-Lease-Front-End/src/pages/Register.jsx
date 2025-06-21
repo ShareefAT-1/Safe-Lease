@@ -1,8 +1,8 @@
 import { useState } from "react";
 import axiosbase from "../config/axios-config";
 import { toast } from "react-hot-toast";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from '../context/AuthContext'; 
+import { useNavigate, Link } from "react-router-dom"; // Added Link
+import { useAuth } from '../hooks/useAuth'; // Corrected path
 
 const Register = () => {
   const navigate = useNavigate();
@@ -150,9 +150,9 @@ const Register = () => {
 
         <p className="text-center text-gray-400 mt-4 text-sm">
           Already have an account?{" "}
-          <a href="/login" className="text-blue-400 font-medium hover:underline">
+          <Link to="/login" className="text-blue-400 font-medium hover:underline">
             Login
-          </a>
+          </Link>
         </p>
       </div>
     </div>

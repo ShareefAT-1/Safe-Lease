@@ -1,132 +1,203 @@
-// Safe-Lease/frontend/src/components/ChatComponent.jsx
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useAuth } from '../hooks/useAuth'; // CORRECTED PATH to src/hooks/useAuth.js
+import { toast } from 'react-hot-toast';
 import io from 'socket.io-client';
-import { toast } from 'react-hot-toast'; // For notifications
+import axiosbase from '../config/axios-config'; // Import axiosbase for the base URL
 
-const SOCKET_SERVER_URL = 'http://localhost:4000'; // Your backend Socket.IO URL
-
-const ChatComponent = ({ conversationId, currentUserId }) => {
-    const [socket, setSocket] = useState(null);
+const ChatComponent = ({ recipientId }) => {
+    const { user, isAuthenticated, backendToken, loading: authLoading } = useAuth(); 
     const [messages, setMessages] = useState([]);
-    const [input, setInput] = useState('');
+    const [newMessage, setNewMessage] = useState('');
+    const socketRef = useRef(null); 
+    
+    const [conversationId, setConversationId] = useState(null);
     const messagesEndRef = useRef(null);
+    const scrollContainerRef = useRef(null);
 
-    // Effect for Socket.IO connection and event listeners
+    // Use baseURL from axiosbase directly, or define if needed for non-axiosbase calls
+    // In this component, we only need it for the socket connection.
+    const SOCKET_URL = axiosbase.defaults.baseURL; 
+
+
     useEffect(() => {
-        const token = localStorage.getItem('token'); 
-        if (!token) {
-            toast.error("You must be logged in to chat.");
+        const currentUserId = user?.id;
+        if (currentUserId && recipientId) {
+            const sortedIds = [currentUserId, recipientId].sort();
+            const generatedChatRoomId = `${sortedIds[0]}_${sortedIds[1]}`;
+            setConversationId(generatedChatRoomId);
+        } else {
+            setConversationId(null);
+            console.warn("ChatComponent: Current user ID or recipient ID is missing. Cannot form conversation ID.");
+        }
+    }, [user, recipientId]);
+
+    const scrollToBottom = useCallback(() => {
+        if (messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+    }, [messagesEndRef]);
+
+    useEffect(() => {
+        if (authLoading || !isAuthenticated || !backendToken || !conversationId) {
+            if (socketRef.current) {
+                socketRef.current.disconnect();
+                socketRef.current = null;
+            }
+            setMessages([]);
             return;
         }
 
-        // Initialize Socket.IO client with JWT token
-        const newSocket = io(SOCKET_SERVER_URL, {
-            query: { token: token }, // Pass JWT token for authentication on connection
-            // extraHeaders: { "ngrok-skip-browser-warning": "69420" } // Uncomment if using ngrok
+        console.log(`ChatComponent: Attempting to connect socket to ${SOCKET_URL}`);
+        const newSocket = io(SOCKET_URL, { // Use SOCKET_URL here
+            query: { token: backendToken },
+            transports: ['websocket'],
         });
 
-        setSocket(newSocket);
+        socketRef.current = newSocket;
 
         newSocket.on('connect', () => {
-            console.log('Connected to chat server!');
-            newSocket.emit('joinRoom', { conversationId }); // Join the specific chat room
+            console.log('Socket connected successfully!');
+            newSocket.emit('joinRoom', { conversationId });
+        });
+
+        newSocket.on('authError', (message) => {
+            console.error('Socket authentication error:', message);
+            toast.error(`Chat error: ${message}`);
+            newSocket.disconnect();
+        });
+
+        newSocket.on('connect_error', (err) => {
+            console.error('Socket connection error:', err.message);
+            toast.error('Failed to connect to chat. Please try again.');
+        });
+
+        newSocket.on('disconnect', (reason) => {
+            console.log('Socket disconnected:', reason);
+            if (reason === 'io server disconnect') {
+                newSocket.connect();
+            }
+            toast.info('Disconnected from chat.');
         });
 
         newSocket.on('chatHistory', (history) => {
-            setMessages(history); // Set initial chat history
+            setMessages(history);
+            console.log(`Received chat history: ${history.length} messages.`);
+            scrollToBottom();
         });
 
         newSocket.on('receiveMessage', (message) => {
-            // Only add message if it belongs to the currently active conversation
-            if (message.conversationId === conversationId) {
-                setMessages((prevMessages) => [...prevMessages, message]);
-            }
+            setMessages((prevMessages) => [...prevMessages, message]);
+            scrollToBottom();
         });
 
-        newSocket.on('authError', (errorMessage) => {
-            toast.error(`Chat authentication error: ${errorMessage}`);
-            console.error('Chat authentication error:', errorMessage);
-            newSocket.disconnect(); // Disconnect on auth error
+        newSocket.on('error', (message) => {
+            console.error('Socket error from server:', message);
+            toast.error(`Chat Error: ${message}`);
         });
 
-        newSocket.on('error', (errorMessage) => {
-            toast.error(`Chat error: ${errorMessage}`);
-            console.error('Chat error:', errorMessage);
-        });
-
-        newSocket.on('disconnect', () => {
-            console.log('Disconnected from chat server');
-            // toast.info('Disconnected from chat.'); // Optional: inform user
-        });
-
-        // Cleanup function: disconnect socket when component unmounts
         return () => {
-            newSocket.disconnect();
+            console.log('Disconnecting socket...');
+            if (socketRef.current) {
+                socketRef.current.off();
+                socketRef.current.disconnect();
+                socketRef.current = null;
+            }
+            setMessages([]);
         };
-    }, [conversationId]); // Reconnect if conversationId changes
+    }, [isAuthenticated, backendToken, conversationId, authLoading, SOCKET_URL, scrollToBottom]);
 
-    // Effect to scroll to the bottom of the chat on new messages
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages]);
+        scrollToBottom();
+    }, [messages, scrollToBottom]);
 
-    const sendMessage = (e) => {
+    const handleSendMessage = (e) => {
         e.preventDefault();
-        if (input.trim() && socket && conversationId) {
-            socket.emit('sendMessage', { conversationId, content: input.trim() });
-            setInput(''); // Clear input field
+        if (!newMessage.trim() || !socketRef.current || !user?.id || !conversationId) {
+            toast.error("Cannot send empty message or chat not ready.");
+            return;
         }
+
+        socketRef.current.emit('sendMessage', {
+            conversationId,
+            content: newMessage.trim(),
+            senderId: user.id,
+        });
+        setNewMessage('');
     };
 
+    const getSenderDisplayName = (messageSender) => {
+        if (user && user.id === messageSender._id) {
+            return user.username || user.name || 'You';
+        } 
+        return messageSender.name || messageSender.username || `User ${messageSender._id?.substring(0, 5)}...`;
+    };
+
+    if (authLoading) {
+        return <div className="p-4 text-center">Loading authentication for chat...</div>;
+    }
+
+    if (!isAuthenticated) {
+        return <div className="p-4 text-center text-red-500">Please log in to use chat.</div>;
+    }
+    
+    if (!socketRef.current || !conversationId) {
+        return <div className="p-4 text-center text-gray-500">Connecting to chat...</div>;
+    }
+
     return (
-        <div className="flex flex-col h-full bg-gray-50 rounded-lg shadow-md border border-gray-200">
-            <div className="p-4 bg-blue-600 text-white rounded-t-lg">
-                <h3 className="text-lg font-semibold">Property Chat</h3> {/* Dynamic title can be added if property name is passed */}
+        <div className="flex flex-col h-full bg-gray-50 border rounded-lg shadow-md">
+            <div className="p-4 border-b bg-blue-600 text-white rounded-t-lg">
+                <h2 className="text-xl font-semibold">
+                    Chat with {recipientId ? `User ${recipientId.substring(0, 5)}...` : 'Someone'}
+                </h2>
             </div>
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                {messages.length === 0 && (
-                    <p className="text-gray-500 text-center">No messages yet. Start the conversation!</p>
-                )}
-                {messages.map((msg, index) => (
+            <div
+                ref={scrollContainerRef}
+                className="flex-1 p-4 overflow-y-auto custom-scrollbar"
+            >
+                {messages.map((msg) => (
                     <div
-                        key={msg._id || index} // Use _id if available, fallback to index
-                        className={`flex ${msg.sender._id === currentUserId ? 'justify-end' : 'justify-start'}`}
+                        key={msg._id}
+                        className={`flex mb-3 ${msg.sender._id === user.id ? 'justify-end' : 'justify-start'}`}
                     >
                         <div
-                            className={`rounded-lg p-3 max-w-[70%] ${
-                                msg.sender._id === currentUserId
+                            className={`max-w-[70%] p-3 rounded-lg shadow-sm ${
+                                msg.sender._id === user.id
                                     ? 'bg-blue-500 text-white'
-                                    : 'bg-gray-300 text-gray-800'
+                                    : 'bg-gray-200 text-gray-800'
                             }`}
                         >
-                            <span className="font-semibold text-sm">
-                                {msg.sender._id === currentUserId ? 'You' : msg.sender.username}
-                            </span>
-                            <p className="text-sm break-words mt-1">{msg.content}</p>
-                            <span className="block text-xs text-right opacity-80 mt-1">
-                                {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </span>
+                            <div className="font-semibold text-sm mb-1">
+                                {getSenderDisplayName(msg.sender)}
+                            </div>
+                            <p className="text-sm break-words">{msg.content}</p>
+                            {msg.timestamp && (
+                                <span className="block text-right text-xs mt-1 opacity-75">
+                                    {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                            )}
                         </div>
                     </div>
                 ))}
-                <div ref={messagesEndRef} />
+                <div ref={messagesEndRef} /> 
             </div>
-            <form onSubmit={sendMessage} className="p-4 border-t bg-white flex space-x-2">
-                <input
-                    type="text"
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    placeholder="Type your message..."
-                    className="flex-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    disabled={!socket || !currentUserId} // Disable if not connected or not logged in
-                />
-                <button
-                    type="submit"
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md transition duration-150 ease-in-out"
-                    disabled={!socket || !currentUserId || input.trim() === ''} // Disable if no socket/user or empty input
-                >
-                    Send
-                </button>
+            <form onSubmit={handleSendMessage} className="p-4 border-t bg-white rounded-b-lg">
+                <div className="flex">
+                    <input
+                        type="text"
+                        value={newMessage}
+                        onChange={(e) => setNewMessage(e.target.value)}
+                        placeholder="Type a message..."
+                        className="flex-1 border rounded-l-lg py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <button
+                        type="submit"
+                        className="bg-blue-600 text-white px-6 py-2 rounded-r-lg hover:bg-blue-700 transition duration-200"
+                        disabled={!socketRef.current || !newMessage.trim()}
+                    >
+                        Send
+                    </button>
+                </div>
             </form>
         </div>
     );

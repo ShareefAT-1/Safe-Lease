@@ -1,30 +1,38 @@
 // Safe-Lease Back-End/server.js
 const express = require('express');
-const http = require('http'); // Import Node.js http module
-const { Server } = require('socket.io'); // Import Socket.IO Server
+const http = require('http'); 
+const { Server } = require('socket.io'); 
 const mongoose = require('mongoose');
-const cors = require('cors');
-const jwt = require('jsonwebtoken'); // Import jsonwebtoken for Socket.IO auth
-require('dotenv').config();
+const cors = require('cors'); 
+const jwt = require('jsonwebtoken'); 
+require('dotenv').config(); // IMPORTANT: This MUST be at the very top to load .env variables first
+
+// ADD THIS LINE FOR DIAGNOSIS
+console.log('Backend Loading FRONTEND_URL from .env:', process.env.FRONTEND_URL);
 
 // Import your Mongoose models
-const User = require('./models/User-model'); // Assuming your User model path
-const Message = require('./models/Message-model'); // Import the new Message model
+const User = require('./models/User-model'); 
+const Message = require('./models/Message-model'); 
 
 const app = express();
-const server = http.createServer(app); // Create HTTP server from Express app
+const server = http.createServer(app); 
 
 // Initialize Socket.IO with the HTTP server
 const io = new Server(server, {
     cors: {
-        origin: "http://localhost:3000", // Your frontend URL
+        origin: process.env.FRONTEND_URL, // MODIFIED: Removed '|| "http://localhost:3000"' fallback
         methods: ["GET", "POST"]
     }
 });
 
 // Middleware
 app.use(express.json());
-app.use(cors());
+// Ensure you have ONLY ONE app.use(cors(...)) block
+app.use(cors({
+    origin: process.env.FRONTEND_URL, // MODIFIED: Removed '|| "http://localhost:3000"' fallback
+    credentials: true,
+}));
+
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI)
@@ -34,33 +42,41 @@ mongoose.connect(process.env.MONGO_URI)
 // Routes
 const authRoutes = require('./Routes/auth-route');
 const propertyRoutes = require('./Routes/property-route');
-// const agreementRoutes = require('./routes/agreement-route'); // Uncomment when you create this
-// const userRoutes = require('./routes/user-route'); // COMMENTED OUT: This was causing the error
+const agreementRoutes = require('./Routes/agreement-route'); 
 
 app.use('/auth', authRoutes);
 app.use('/properties', propertyRoutes);
-// app.use('/agreements', agreementRoutes); // Uncomment when you create this
-// app.use('/users', userRoutes); // COMMENTED OUT: This was causing the error
+app.use('/agreements', agreementRoutes);
 
+
+// Simple root route
+app.get('/', (req, res) => {
+    res.send('Safe-Lease Backend API is running!');
+});
+
+// Global error handler
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(err.statusCode || 500).json({ message: err.message || 'Something went wrong!' });
+});
 
 // ----------------------------------------------------
-// Socket.IO Chat Logic
+// Socket.IO Chat Logic (Keep as your OG code provided)
 // ----------------------------------------------------
 
 io.on('connection', async (socket) => {
     console.log(`Socket connected: ${socket.id}`);
 
-    // --- Socket.IO Authentication (using JWT from frontend) ---
     const token = socket.handshake.query.token;
     if (token) {
         try {
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
-            socket.userId = decoded.userId; // Attach user ID to the socket
+            socket.userId = decoded.userId; 
             console.log(`Socket ${socket.id} authenticated as User ID: ${socket.userId}`);
         } catch (err) {
             console.error(`Socket ${socket.id} authentication failed: ${err.message}`);
             socket.emit('authError', 'Authentication failed: Invalid token.');
-            socket.disconnect(); // Disconnect unauthenticated sockets
+            socket.disconnect(); 
             return;
         }
     } else {
@@ -69,13 +85,10 @@ io.on('connection', async (socket) => {
         socket.disconnect();
         return;
     }
-    // ---------------------------------------------------
 
-    // Event for joining a specific chat room (e.g., based on property ID)
     socket.on('joinRoom', async ({ conversationId }) => {
-        // Leave any previously joined rooms (optional, but good for single-room focus)
         socket.rooms.forEach(room => {
-            if (room !== socket.id) { // Don't leave the default personal room
+            if (room !== socket.id) { 
                 socket.leave(room);
             }
         });
@@ -83,12 +96,11 @@ io.on('connection', async (socket) => {
         socket.join(conversationId);
         console.log(`User ${socket.userId} joined room: ${conversationId}`);
 
-        // Load chat history for this room from MongoDB
         try {
             const messages = await Message.find({ conversation: conversationId })
-                                        .populate('sender', 'username') // Populate sender's username
+                                        .populate('sender', 'name username profilePic') 
                                         .sort({ timestamp: 1 })
-                                        .lean(); // Use .lean() for faster query results
+                                        .lean(); 
             socket.emit('chatHistory', messages);
         } catch (error) {
             console.error("Error fetching chat history:", error);
@@ -96,9 +108,8 @@ io.on('connection', async (socket) => {
         }
     });
 
-    // Event for sending messages
     socket.on('sendMessage', async ({ conversationId, content }) => {
-        if (!socket.userId) { // Ensure user is authenticated
+        if (!socket.userId) { 
             return socket.emit('error', 'Authentication required to send messages');
         }
         if (!content || !content.trim()) {
@@ -106,8 +117,7 @@ io.on('connection', async (socket) => {
         }
 
         try {
-            // Find the sender's username to include in the message for display
-            const senderUser = await User.findById(socket.userId, 'username').lean();
+            const senderUser = await User.findById(socket.userId, 'name username profilePic').lean(); 
             if (!senderUser) {
                 return socket.emit('error', 'Sender user not found.');
             }
@@ -120,11 +130,10 @@ io.on('connection', async (socket) => {
 
             await newMessage.save();
 
-            // Emit the message to everyone in the room
             io.to(conversationId).emit('receiveMessage', {
                 _id: newMessage._id,
                 conversationId,
-                sender: { _id: senderUser._id, username: senderUser.username }, // Include populated sender info
+                sender: { _id: senderUser._id, name: senderUser.name, username: senderUser.username, profilePic: senderUser.profilePic }, 
                 content: newMessage.content,
                 timestamp: newMessage.timestamp,
             });
@@ -141,6 +150,6 @@ io.on('connection', async (socket) => {
 
 // Start the server
 const PORT = process.env.PORT || 4000;
-server.listen(PORT, () => { // Make sure to use server.listen, not app.listen
+server.listen(PORT, () => { 
     console.log(`Server running on port ${PORT}`);
 });

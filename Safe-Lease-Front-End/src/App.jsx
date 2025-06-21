@@ -1,4 +1,3 @@
-// src/App.jsx
 import React from "react";
 import { Route, Routes } from "react-router-dom"; 
 
@@ -17,6 +16,11 @@ import CreateAgreementPage from "./pages/CreateAgreementPage";
 
 import TestLandlordRequests from "./pages/TestLandlordRequests";
 import TestRequestAgreement from "./pages/TestRequestAgreement";
+import LandlordChatsPage from "./pages/LandlordChatsPage"; 
+
+// Dashboard imports (keep these)
+import LandlordDashboard from "./pages/LandlordDashboard";
+import TenantDashboard from "./pages/TenantDashboard";
 
 
 function App() {
@@ -34,9 +38,14 @@ function App() {
 
         <Route path="/create-agreement/:propertyId/:landlordId" element={<CreateAgreementPage />} />
 
+        {/* These routes are now defined and will prevent "No routes matched" warnings */}
+        <Route path="/landlord-dashboard" element={<LandlordDashboard />} />
+        <Route path="/tenant-dashboard" element={<TenantDashboard />} />
+
         {/* Test routes */}
         <Route path="/test/landlord-requests" element={<TestLandlordRequests />} />
         <Route path="/test/request-agreement" element={<TestRequestAgreement />} />
+        <Route path="/landlord-chats" element={<LandlordChatsPage />} />
       </Routes>
       <Footer />
     </>
