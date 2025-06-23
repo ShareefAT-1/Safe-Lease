@@ -1,4 +1,3 @@
-// Safe-Lease-Back-End/Routes/agreement-route.js
 const express = require('express');
 const router = express.Router();
 const Agreement = require('../models/Agreement-model');
@@ -139,18 +138,17 @@ router.put('/negotiate/:id', authMiddleware, roleMiddleware('landlord'), async (
 });
 
 
-// GET /agreements/requests - Get all agreement requests for a landlord
 router.get('/requests', authMiddleware, roleMiddleware('landlord'), async (req, res) => {
     try {
         console.log(`Attempting to fetch requests for landlord ID: ${req.user.id}`);
 
         const requests = await Agreement.find({ landlord: req.user.id })
-                                      .populate('tenant', 'name username') // Added username for consistency
+                                      .populate('tenant', 'name username')
                                       .populate('property', 'title propertyName address city state location imageUrl image') // Populate all relevant property fields
                                       .sort({ createdAt: -1 }); 
 
         console.log(`Found ${requests.length} agreement requests for landlord ${req.user.id}.`);
-        console.log("Full populated requests (backend):", requests); // ADDED: Log the full populated requests
+        console.log("Full populated requests (backend):", requests); 
 
         res.status(200).json({ requests });
 

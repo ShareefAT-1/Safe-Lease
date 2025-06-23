@@ -1,6 +1,6 @@
 import React from 'react'; 
 import RequestAgreement from '../components/Agreement/RequestAgreement'; 
-import { useAuth } from '../hooks/useAuth'; // Corrected path
+import { useAuth } from '../hooks/useAuth'; 
 
 const realPropertyId = '666e0a8112d8a571f544622b'; 
 const realLandlordId = '666e0a8112d8a571f544622a'; 

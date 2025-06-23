@@ -12,11 +12,11 @@ const CreateAgreementPage = () => {
     const [formData, setFormData] = useState({ 
         property: propertyId || '', 
         landlord: landlordId || '', 
-        startDate: '', // YYYY-MM-DD format from input
+        startDate: '',
         rentAmount: '', 
         agreementTerms: '', 
         message: '', 
-        leaseTerm: 12, // Default lease term in months
+        leaseTerm: 12,
         deposit: '' 
     }); 
     const [submitting, setSubmitting] = useState(false); 
@@ -118,13 +118,11 @@ const CreateAgreementPage = () => {
         }
 
         try { 
-            // Calculate endDate based on startDate and leaseTerm
             const parsedStartDate = new Date(formData.startDate);
             const calculatedEndDate = new Date(parsedStartDate);
             calculatedEndDate.setMonth(parsedStartDate.getMonth() + parseInt(formData.leaseTerm, 10));
-            // Ensure day of month doesn't jump due to month end differences
             if (calculatedEndDate.getDate() !== parsedStartDate.getDate()) {
-                calculatedEndDate.setDate(0); // Go to last day of previous month
+                calculatedEndDate.setDate(0); 
             }
             const isoEndDate = calculatedEndDate.toISOString();
 
@@ -144,7 +142,7 @@ const CreateAgreementPage = () => {
                 requestMessage: formData.message, 
             }; 
 
-            console.log("Sending agreement data:", agreementData); // Keep this for debugging
+            console.log("Sending agreement data:", agreementData); 
 
             const response = await axiosbase.post("/agreements/request", agreementData, { 
                 headers: { 
@@ -207,7 +205,6 @@ const CreateAgreementPage = () => {
                     </div> 
                 )} 
 
-                {/* Move-in Date */} 
                 <div className="mb-4"> 
                     <label htmlFor="startDate" className="block text-gray-700 text-sm font-bold mb-2">Proposed Move-in Date:</label> 
                     <input 
@@ -223,7 +220,6 @@ const CreateAgreementPage = () => {
                     {formErrors.startDate && <p className="text-red-500 text-xs italic mt-1">{formErrors.startDate}</p>} 
                 </div> 
 
-                {/* Rent Amount */} 
                 <div className="mb-4"> 
                     <label htmlFor="rentAmount" className="block text-gray-700 text-sm font-bold mb-2">Proposed Monthly Rent (₹):</label> 
                     <input 
@@ -239,7 +235,6 @@ const CreateAgreementPage = () => {
                     {formErrors.rentAmount && <p className="text-red-500 text-xs italic mt-1">{formErrors.rentAmount}</p>} 
                 </div> 
                 
-                {/* Deposit Amount */} 
                 <div className="mb-4"> 
                     <label htmlFor="deposit" className="block text-gray-700 text-sm font-bold mb-2">Proposed Security Deposit (₹):</label> 
                     <input 
@@ -255,7 +250,6 @@ const CreateAgreementPage = () => {
                     {formErrors.deposit && <p className="text-red-500 text-xs italic mt-1">{formErrors.deposit}</p>} 
                 </div> 
 
-                 {/* Lease Term */} 
                  <div className="mb-4"> 
                     <label htmlFor="leaseTerm" className="block text-gray-700 text-sm font-bold mb-2">Proposed Lease Term (Months):</label> 
                     <input 
@@ -272,7 +266,6 @@ const CreateAgreementPage = () => {
                     {formErrors.leaseTerm && <p className="text-red-500 text-xs italic mt-1">{formErrors.leaseTerm}</p>} 
                 </div> 
 
-                {/* Agreement Terms */} 
                 <div className="mb-6"> 
                     <label htmlFor="agreementTerms" className="block text-gray-700 text-sm font-bold mb-2">Proposed Agreement Terms (Details):</label> 
                     <textarea 
@@ -289,7 +282,6 @@ const CreateAgreementPage = () => {
                     {formErrors.agreementTerms && <p className="text-red-500 text-xs italic mt-1">{formErrors.agreementTerms}</p>} 
                 </div> 
 
-                {/* Message to Landlord (Optional) */} 
                 <div className="mb-6"> 
                     <label htmlFor="message" className="block text-gray-700 text-sm font-bold mb-2">Message to Landlord (Optional):</label> 
                     <textarea 

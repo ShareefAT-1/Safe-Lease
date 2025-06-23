@@ -1,6 +1,6 @@
 import React from 'react'; 
 import LandlordRequests from '../components/Agreement/LandlordRequests'; 
-import { useAuth } from '../hooks/useAuth'; // Corrected path
+import { useAuth } from '../hooks/useAuth';
 
 const TestLandlordRequests = () => { 
     const { isAuthenticated, user, loading: authLoading } = useAuth(); 

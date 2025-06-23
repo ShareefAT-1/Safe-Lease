@@ -2,13 +2,13 @@ const mongoose = require('mongoose');
 
 const messageSchema = new mongoose.Schema({
     conversation: {
-        type: String, // Or ObjectId, if linking to a specific conversation document
+        type: String, 
         required: true,
-        index: true // For efficient querying
+        index: true 
     },
     sender: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User', // Refers to your User model
+        ref: 'User', 
         required: true,
     },
     content: {

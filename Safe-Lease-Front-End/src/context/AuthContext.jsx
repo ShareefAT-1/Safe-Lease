@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
-import { AuthContext } from '../hooks/useAuth'; // IMPORT AuthContext from the new hook file
+import { AuthContext } from '../hooks/useAuth';
 
-// AuthProvider is now the ONLY component/value exported from this file.
-// This design satisfies the Fast Refresh ESLint rule.
+
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null); 
     const [backendToken, setBackendToken] = useState(null);

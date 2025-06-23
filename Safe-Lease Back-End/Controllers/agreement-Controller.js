@@ -1,59 +1,49 @@
 const Agreement = require('../models/Agreement-model');
 const generateAgreementPDF = require('../utils/generatePDF');
 const path = require('path');
-const fs = require('fs'); // <--- IMPORTANT: Import 'fs' for file system operations (like deleting signature on error)
+const fs = require('fs'); 
 
 exports.createAgreement = async (req, res) => {
   try {
-    // req.body contains text fields, req.file contains the uploaded signature image
     const { tenant, property, startDate, endDate, rentAmount, agreementTerms } = req.body;
 
-    // --- CHECK FOR SIGNATURE IMAGE ---
-    // The 'signatureImage' field in req.file matches the name used in formData.append('signatureImage', ...) on the frontend
     if (!req.file) {
       return res.status(400).json({ error: 'Signature image is required to create an agreement.' });
     }
 
-    // --- CREATE NEW AGREEMENT INSTANCE ---
     const agreement = new Agreement({
       tenant,
-      landlord: req.user._id, // Assuming req.user is populated by authMiddleware
+      landlord: req.user._id,
       property,
       startDate,
       endDate,
       rentAmount,
       agreementTerms,
-      status: 'approved', // Or 'pending-landlord-signed' if you want a new status
-      signed: true, // Mark as signed since the landlord is signing it upon creation
-      landlordSignatureImage: req.file.path, // <--- SAVE THE PATH OF THE UPLOADED SIGNATURE
+      status: 'approved',
+      signed: true, 
+      landlordSignatureImage: req.file.path, 
     });
 
-    // --- SAVE AGREEMENT TO DATABASE ---
     await agreement.save();
 
-    // --- POPULATE AGREEMENT FOR PDF GENERATION ---
     const populatedAgreement = await Agreement.findById(agreement._id)
       .populate('tenant', 'name')
       .populate('landlord', 'name')
       .populate('property', 'title');
 
-    // --- GENERATE AND SAVE PDF ---
-    // If you plan to embed the actual signature image into the PDF,
-    // you would modify generateAgreementPDF to accept agreement.landlordSignatureImage
     const filePath = path.join(__dirname, '..', 'agreements', `${agreement._id}.pdf`);
     await generateAgreementPDF(populatedAgreement, filePath);
 
-    // --- SEND SUCCESS RESPONSE ---
     res.status(201).json({
       message: 'Agreement created and signed successfully',
       agreementId: agreement._id,
       pdfPath: `/agreements/${agreement._id}.pdf`,
-      landlordSignatureImage: agreement.landlordSignatureImage // Optionally return the image path
+      landlordSignatureImage: agreement.landlordSignatureImage 
     });
 
   } catch (err) {
     console.error('Agreement creation failed:', err);
-    // --- ERROR HANDLING: DELETE UPLOADED FILE IF AGREEMENT SAVE FAILS ---
+
     if (req.file) {
       fs.unlink(req.file.path, (unlinkErr) => {
         if (unlinkErr) console.error('Error deleting uploaded signature file after failed agreement creation:', unlinkErr);

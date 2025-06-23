@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom"; // Added Link
+import { useNavigate, Link } from "react-router-dom"; 
 import axiosbase from "../config/axios-config";
 import { toast } from "react-hot-toast";
-import { useAuth } from '../hooks/useAuth'; // Corrected path
+import { useAuth } from '../hooks/useAuth';
 
 const Login = () => {
   const [formData, setFormData] = useState({ email: "", password: "" });
@@ -30,7 +30,6 @@ const Login = () => {
       
       toast.success('Logged in successfully!');
       
-      // Redirect based on user role - these routes need to be defined in App.js
       if (user.role === 'landlord') {
         navigate('/landlord-dashboard'); 
       } else if (user.role === 'tenant') {

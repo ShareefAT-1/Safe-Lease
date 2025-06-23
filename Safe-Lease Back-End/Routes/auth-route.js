@@ -6,11 +6,9 @@ const authMiddleware = require('../middleware/authMiddleware');
 const roleMiddleware = require('../middleware/roleMiddleware'); 
 
 
-// Public routes (no authentication needed) 
 router.post('/register', registerUser); 
 router.post('/login', loginUser); 
 
-// Authenticated route to get current user details
 router.get('/me', authMiddleware, (req, res) => {
     if (req.user) {
         const userDetails = {
@@ -27,12 +25,9 @@ router.get('/me', authMiddleware, (req, res) => {
     }
 });
 
-// CONFIRM THIS ROUTE: Get a specific user by ID (e.g., for chat name display)
-// This route should be protected. Your `getUserById` doesn't use `req.user` for filtering,
-// so `authMiddleware` is appropriate to ensure a token is present.
+
 router.get('/profile/:id', authMiddleware, getUserById); 
 
-// Role-specific routes (keep as is)
 router.get('/admin-dashboard', authMiddleware, roleMiddleware('admin'), (req, res) => {
     res.json({ msg: 'Welcome to the Admin Dashboard', user: req.user });
 });

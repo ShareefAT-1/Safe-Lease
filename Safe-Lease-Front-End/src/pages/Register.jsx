@@ -1,8 +1,8 @@
 import { useState } from "react";
 import axiosbase from "../config/axios-config";
 import { toast } from "react-hot-toast";
-import { useNavigate, Link } from "react-router-dom"; // Added Link
-import { useAuth } from '../hooks/useAuth'; // Corrected path
+import { useNavigate, Link } from "react-router-dom"; 
+import { useAuth } from '../hooks/useAuth';
 
 const Register = () => {
   const navigate = useNavigate();

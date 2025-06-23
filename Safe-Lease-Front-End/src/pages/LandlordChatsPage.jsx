@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react'; 
 import axios from 'axios';
-import { useAuth } from '../hooks/useAuth'; // Corrected path
+import { useAuth } from '../hooks/useAuth';
 import { toast } from 'react-hot-toast';
 import ChatComponent from '../components/ChatComponent';
-import axiosbase from '../config/axios-config'; // Import axiosbase
+import axiosbase from '../config/axios-config'; 
 
 const LandlordChatsPage = () => {
     const { user, isAuthenticated, backendToken, loading: authLoading } = useAuth();
@@ -12,7 +12,7 @@ const LandlordChatsPage = () => {
     const [error, setError] = useState(null);
     const [showChatFor, setShowChatFor] = useState(null); 
 
-    const API_URL = axiosbase.defaults.baseURL; // Use axiosbase.defaults.baseURL
+    const API_URL = axiosbase.defaults.baseURL; 
 
     const fetchTenantsWithRequests = useCallback(async () => { 
         if (authLoading || !isAuthenticated || !backendToken || user?.role !== 'landlord') {

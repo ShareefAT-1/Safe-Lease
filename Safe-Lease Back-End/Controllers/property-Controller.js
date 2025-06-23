@@ -81,7 +81,6 @@ const updateProperty = async (req, res) => {
     const property = await Property.findById(req.params.id);
     if (!property) return res.status(404).json({ msg: 'Property not found' });
 
-    // Assuming req.user contains the user ID from authMiddleware
     if (property.owner.toString() !== req.user) {
       return res.status(403).json({ msg: 'Unauthorized: This is not your property' });
     }

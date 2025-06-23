@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react"; 
 import { useParams, Link, useNavigate } from "react-router-dom"; 
-import axiosbase from '../config/axios-config'; // Import axiosbase
+import axiosbase from '../config/axios-config'; 
 import { toast } from "react-hot-toast"; 
 import { FaMapMarkerAlt, FaBed, FaBath, FaRulerCombined, FaCheckCircle, FaTimesCircle, FaCommentDots } from "react-icons/fa"; 
 import { MdOutlineHouse, MdOutlineDashboardCustomize } from "react-icons/md"; 
@@ -90,69 +90,58 @@ const SingleProperty = () => {
         ); 
     } 
 
-    // --- PROPERTY DATA MAPPING (HIGHLY ROBUST) ---
-    // Prioritize 'title' from site-created, then 'propertyName' from manual
     const displayTitle = property.title || property.propertyName || "Untitled Property"; 
     const displayDescription = property.description || 'No description provided.'; 
     
-    // Flexible Location Handling
     let fullLocation = 'N/A';
-    if (property.address && typeof property.address === 'object') { // Check if 'address' is an object (site-created)
+    if (property.address && typeof property.address === 'object') {
         fullLocation = [property.address.street, property.address.city, property.address.state, property.address.zipCode]
             .filter(Boolean) 
             .join(', ');
-    } else if (property.location) { // Check for 'location' string (manual)
+    } else if (property.location) {
         fullLocation = property.location;
-    } else if (property.city || property.state || property.zipCode) { // Fallback for direct city/state/zipCode fields if not in 'address' object
+    } else if (property.city || property.state || property.zipCode) { 
          fullLocation = [property.city, property.state, property.zipCode]
             .filter(Boolean)
             .join(', ');
     }
 
-    // Prioritize 'propertyType' from site-created, then 'type' from manual
     const displayPropertyType = property.propertyType || property.type || 'N/A'; 
 
-    // Prioritize 'listingType' from site-created, then 'status' from manual, then infer from 'available'
     const displayListingStatus = property.listingType || property.status || (typeof property.available === 'boolean' ? (property.available ? "Available" : "Not Available") : 'N/A');
     
-    // Prioritize 'area' from site-created, then 'size' from manual
     const displayArea = property.area || property.size; 
 
-    // Prioritize 'bedrooms' from site-created, then 'rooms' from manual
     const displayBedrooms = property.bedrooms || property.rooms || 'N/A'; 
     
     const displayBathrooms = property.bathrooms || 'N/A'; 
-    const displayPrice = property.price || 'N/A'; // Both schemas use 'price' for numerical value
-    const displayAvailable = typeof property.available === 'boolean' ? property.available : true; // Use 'available' boolean for checkmark status
+    const displayPrice = property.price || 'N/A'; 
+    const displayAvailable = typeof property.available === 'boolean' ? property.available : true; 
 
-    // Image URL Handling - IMPORTANT: Prepend backend base URL for relative paths
     let displayImageUrl = '';
     if (property.image && typeof property.image === 'string') { 
-        // If it's a relative path like 'uploads\...', prepend base URL
-        if (property.image.startsWith('uploads/')) { // Check for typical uploads path
+        if (property.image.startsWith('uploads/')) { 
             displayImageUrl = `${axiosbase.defaults.baseURL}/${property.image}`;
-        } else if (property.image.startsWith('uploads\\')) { // Handle Windows path separator for safety
+        } else if (property.image.startsWith('uploads\\')) { 
              displayImageUrl = `${axiosbase.defaults.baseURL}/${property.image.replace(/\\/g, '/')}`;
         }
-        else { // Assume it's a full URL if it doesn't start with uploads/
+        else { 
             displayImageUrl = property.image;
         }
-    } else if (property.imageUrl && typeof property.imageUrl === 'string') { // Check for 'imageUrl' (likely manually added with full URL)
+    } else if (property.imageUrl && typeof property.imageUrl === 'string') { 
         displayImageUrl = property.imageUrl;
     }
 
-    // Owner ID for chat/agreement - use property.owner._id directly
     const chatRecipientId = property.owner?._id; 
-    // LandlordName might be a direct property or nested within owner if populated.
+
     const displayLandlordName = property.owner?.name || property.owner?.username || "Landlord";
 
-    // isOwner definition
     const isOwner = user && user.id === chatRecipientId;
 
     return ( 
         <section className="bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 md:px-8 lg:px-16 min-h-screen font-sans"> 
             <div className="max-w-7xl mx-auto bg-white rounded-3xl shadow-3xl overflow-hidden animate-fade-in-up"> 
-                {/* Hero Image and Title Section */} 
+
                 <div className="relative h-[400px] md:h-[600px] lg:h-[700px] overflow-hidden group"> 
                     {displayImageUrl ? (  
                         <img 
@@ -178,18 +167,16 @@ const SingleProperty = () => {
                     </div> 
                 </div> 
 
-                {/* Main Content Area */} 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 p-8 md:p-12"> 
 
-                    {/* Left Column: Details & Features */} 
                     <div className="lg:col-span-2 space-y-10"> 
-                        {/* Price & Availability */} 
+
                         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-6 border-b border-gray-200"> 
                             <div className="mb-4 sm:mb-0"> 
                                 <span className="block text-4xl md:text-5xl font-extrabold text-blue-700 mb-1 leading-none"> 
                                     ₹{displayPrice?.toLocaleString() || 'N/A'}  
                                 </span> 
-                                <span className="text-lg text-gray-500 font-medium">Monthly Rent</span> {/* Labeling it as Monthly Rent for consistency */}
+                                <span className="text-lg text-gray-500 font-medium">Monthly Rent</span> 
                             </div> 
                             <div 
                                 className={`flex items-center gap-2 font-bold text-lg px-6 py-3 rounded-full shadow-lg transition-colors duration-300 transform hover:scale-105 ${
@@ -207,7 +194,6 @@ const SingleProperty = () => {
                             </div> 
                         </div> 
 
-                        {/* Core Details Grid */} 
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"> 
                             <Detail  
                                 label="Location"  
@@ -221,7 +207,6 @@ const SingleProperty = () => {
                             <Detail label="Bathrooms" value={displayBathrooms || 'N/A'} icon={<FaBath />} />  
                         </div> 
 
-                        {/* Features Section */} 
                         {property.features && property.features.length > 0 && (  
                             <div className="bg-gray-50 p-6 rounded-xl shadow-inner border border-gray-100"> 
                                 <h3 className="text-2xl font-bold text-gray-800 mb-6 border-b-2 pb-3 border-blue-200">Exclusive Features</h3> 
@@ -239,19 +224,16 @@ const SingleProperty = () => {
                         )}
                     </div> 
 
-                    {/* --- Right Column: Call to Action / Landlord Info --- */} 
                     <div className="lg:col-span-1 flex flex-col space-y-6"> 
                          <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-100 flex flex-col gap-4"> 
                             <h3 className="text-2xl font-bold text-gray-800 mb-4 text-center">Contact Landlord</h3> 
                             
-                            {/* Display Landlord Name */}
-                            {displayLandlordName !== "Landlord" && ( // Only show if a specific name is found
+                            {displayLandlordName !== "Landlord" && ( 
                                 <p className="text-center text-lg text-gray-700 mb-4">
                                     Listed by: <span className="font-semibold">{displayLandlordName}</span>
                                 </p>
                             )}
 
-                            {/* Request Lease Agreement Button (Visible only if logged in as tenant and not the owner) */} 
                             {isAuthenticated && user?.role === 'tenant' && chatRecipientId && currentUserId && currentUserId !== chatRecipientId && ( 
                                 <Link 
                                     to={`/create-agreement/${property._id}/${chatRecipientId}`} 
@@ -261,7 +243,6 @@ const SingleProperty = () => {
                                 </Link> 
                             )} 
 
-                            {/* Conditional Contact Button: Chat with Landlord or Login/General Contact */} 
                             {isAuthenticated && chatRecipientId && currentUserId && currentUserId !== chatRecipientId ? ( 
                                 <button 
                                     type="button" 
@@ -293,7 +274,6 @@ const SingleProperty = () => {
                 </div> 
             </div> 
 
-            {/* Chat Modal/Overlay */} 
             {showChat && isAuthenticated && currentUserId && chatRecipientId && (  
                  <div className="fixed inset-0 bg-gray-800 bg-opacity-75 flex justify-center items-center z-50 p-4"> 
                      <div className="bg-white rounded-lg shadow-xl w-full max-w-lg h-[90vh] md:h-[75vh] flex flex-col"> 

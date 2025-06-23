@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import axiosbase from "../config/axios-config"; // Use axiosbase for consistency
+import axiosbase from "../config/axios-config"; 
 import { Link } from "react-router-dom";
 
 const AllProducts = () => {
@@ -10,7 +10,7 @@ const AllProducts = () => {
   const fetchProducts = useCallback(async () => {
     try {
       setLoading(true);
-      // Use axiosbase and its configured base URL
+
       const { data } = await axiosbase.get("/properties");
       setProducts(data);
       setError(null);
@@ -59,7 +59,7 @@ const AllProducts = () => {
       <div className="grid md:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-6">
         {products.length ? (
           products.map((property) => {
-            // Flexible data extraction based on property type (manual vs. site-created)
+
             const _id = property._id;
             const displayTitle = property.title || property.propertyName || "Untitled Property";
             const displayDescription = property.description || "";

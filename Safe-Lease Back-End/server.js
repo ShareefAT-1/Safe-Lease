@@ -1,45 +1,38 @@
-// Safe-Lease Back-End/server.js
 const express = require('express');
 const http = require('http'); 
 const { Server } = require('socket.io'); 
 const mongoose = require('mongoose');
 const cors = require('cors'); 
 const jwt = require('jsonwebtoken'); 
-require('dotenv').config(); // IMPORTANT: This MUST be at the very top to load .env variables first
+require('dotenv').config(); 
 
-// ADD THIS LINE FOR DIAGNOSIS
 console.log('Backend Loading FRONTEND_URL from .env:', process.env.FRONTEND_URL);
 
-// Import your Mongoose models
 const User = require('./models/User-model'); 
 const Message = require('./models/Message-model'); 
 
 const app = express();
 const server = http.createServer(app); 
 
-// Initialize Socket.IO with the HTTP server
 const io = new Server(server, {
     cors: {
-        origin: process.env.FRONTEND_URL, // MODIFIED: Removed '|| "http://localhost:3000"' fallback
+        origin: process.env.FRONTEND_URL,
         methods: ["GET", "POST"]
     }
 });
 
-// Middleware
 app.use(express.json());
-// Ensure you have ONLY ONE app.use(cors(...)) block
+
 app.use(cors({
-    origin: process.env.FRONTEND_URL, // MODIFIED: Removed '|| "http://localhost:3000"' fallback
+    origin: process.env.FRONTEND_URL, 
     credentials: true,
 }));
 
 
-// Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI)
     .then(() => console.log('MongoDB connected successfully'))
     .catch(err => console.error('MongoDB connection error:', err));
 
-// Routes
 const authRoutes = require('./Routes/auth-route');
 const propertyRoutes = require('./Routes/property-route');
 const agreementRoutes = require('./Routes/agreement-route'); 
@@ -49,20 +42,15 @@ app.use('/properties', propertyRoutes);
 app.use('/agreements', agreementRoutes);
 
 
-// Simple root route
 app.get('/', (req, res) => {
     res.send('Safe-Lease Backend API is running!');
 });
 
-// Global error handler
 app.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(err.statusCode || 500).json({ message: err.message || 'Something went wrong!' });
 });
 
-// ----------------------------------------------------
-// Socket.IO Chat Logic (Keep as your OG code provided)
-// ----------------------------------------------------
 
 io.on('connection', async (socket) => {
     console.log(`Socket connected: ${socket.id}`);
@@ -148,7 +136,6 @@ io.on('connection', async (socket) => {
     });
 });
 
-// Start the server
 const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => { 
     console.log(`Server running on port ${PORT}`);
