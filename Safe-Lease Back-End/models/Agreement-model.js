@@ -1,11 +1,9 @@
-// Safe-Lease Back-End/models/Agreement-model.js
-
 const mongoose = require('mongoose');
 
 const agreementSchema = new mongoose.Schema({
-    tenant: {
+    property: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
+        ref: 'Property',
         required: true,
     },
     landlord: {
@@ -13,85 +11,70 @@ const agreementSchema = new mongoose.Schema({
         ref: 'User',
         required: true,
     },
-    property: {
+    tenant: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Property',
+        ref: 'User',
         required: true,
-    },
-    // The terms proposed by the tenant
-    requestedTerms: {
-        rent: {
-            type: Number,
-            required: true,
-        },
-        deposit: {
-            type: Number,
-            required: true,
-        },
-        moveInDate: { // Renamed from startDate for clarity with tenant's request
-            type: Date,
-            required: true,
-        },
-        leaseTerm: { // In months
-            type: Number,
-            required: true,
-        },
-        endDate: { // Calculated on frontend, stored here
-            type: Date,
-            required: true,
-        },
-    },
-    // General agreement terms (textual, can be modified during negotiation)
-    agreementTerms: {
-        type: String,
-        required: true,
-    },
-    // Optional message from tenant
-    requestMessage: {
-        type: String,
-        default: '',
     },
     status: {
         type: String,
-        enum: ['pending', 'approved', 'rejected', 'signed', 'negotiating', 'cancelled'], // Added 'negotiating'
+        enum: ['pending', 'approved', 'rejected', 'negotiating', 'active', 'expired', 'cancelled'],
         default: 'pending',
-        required: true,
     },
-    signed: {
-        type: Boolean,
-        default: false,
+    // Original terms requested by the tenant
+    requestedTerms: {
+        rent: { type: Number, required: true },
+        deposit: { type: Number, required: true },
+        moveInDate: { type: Date, required: true },
+        leaseTerm: { type: Number, required: true }, // Lease term in months
+        endDate: { type: Date, required: true },
     },
-    landlordSignatureImage: {
-        type: String,
-        default: null,
-    },
-    tenantSignatureImage: {
-        type: String,
-        default: null,
-    },
-    // Fields for the *final* agreed-upon terms, once approved/signed
-    // These could be populated from requestedTerms or negotiation terms
+    // Current or finalized terms (these get updated during negotiation)
     finalRentAmount: {
         type: Number,
-        default: null,
+        required: function() { return ['approved', 'active', 'expired', 'negotiating'].includes(this.status); }
+    },
+    finalDepositAmount: {
+        type: Number,
+        required: function() { return ['approved', 'active', 'expired', 'negotiating'].includes(this.status); }
     },
     finalStartDate: {
         type: Date,
-        default: null,
+        required: function() { return ['approved', 'active', 'expired', 'negotiating'].includes(this.status); }
+    },
+    finalLeaseTermMonths: {
+        type: Number,
+        required: function() { return ['approved', 'active', 'expired', 'negotiating'].includes(this.status); }
     },
     finalEndDate: {
         type: Date,
-        default: null,
+        required: function() { return ['approved', 'active', 'expired', 'negotiating'].includes(this.status); }
     },
-    finalAgreementTerms: { // If terms can change during negotiation
+    agreementTerms: { // General agreement clauses/text
         type: String,
-        default: null,
+        required: true,
     },
-    // Add a field to track who last updated the agreement if needed for negotiation
-    lastNegotiatedBy: {
+    requestMessage: { // Optional message from tenant when initiating request
+        type: String,
+    },
+    lastNegotiatedBy: { // Tracks who made the last change in negotiation
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        default: null,
+        required: false
+    },
+    landlordSigned: {
+        type: Boolean,
+        default: false,
+    },
+    tenantSigned: {
+        type: Boolean,
+        default: false,
+    },
+    signedDate: {
+        type: Date,
+    },
+    pdfPath: {
+        type: String,
     },
 }, { timestamps: true });
 

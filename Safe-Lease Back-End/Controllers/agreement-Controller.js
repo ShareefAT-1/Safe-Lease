@@ -1,105 +1,127 @@
-// Safe-Lease Back-End/Controllers/agreement-Controller.js
-
 const Agreement = require('../models/Agreement-model');
-const User = require('../models/User-model'); // Need User model for validation
-const Property = require('../models/Property-model'); // Need Property model for validation
-const generateAgreementPDF = require('../utils/generatePDF'); // Assuming this utility exists
+const User = require('../models/User-model');
+const Property = require('../models/Property-model');
+const generateAgreementPDF = require('../utils/generatePDF'); // Ensure this path is correct
 const path = require('path');
 const fs = require('fs');
-const mongoose = require('mongoose'); // For ObjectId validation
+const mongoose = require('mongoose');
 
-// Helper to check if ID is valid ObjectId
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
-// Landlord creates/signs an agreement (after negotiation or direct approval)
 exports.createAgreement = async (req, res) => {
     try {
-        const { tenant, property, agreementTerms, rentAmount, startDate, endDate, status, signed, agreementIdToUpdate } = req.body;
+        const {
+            property,
+            tenant,
+            rentAmount,
+            depositAmount,
+            startDate,
+            endDate,
+            leaseTermMonths,
+            agreementTerms,
+        } = req.body;
+        const landlordId = req.user._id;
+        const signatureImage = req.file;
 
-        // If an agreementIdToUpdate is provided, it means we're updating an existing request
-        let agreement;
-        if (agreementIdToUpdate && isValidObjectId(agreementIdToUpdate)) {
-            agreement = await Agreement.findById(agreementIdToUpdate);
-            if (!agreement) {
-                return res.status(404).json({ error: 'Agreement to update not found.' });
-            }
-            if (agreement.landlord.toString() !== req.user._id.toString()) {
-                return res.status(403).json({ error: 'Forbidden: You are not the landlord of this agreement.' });
-            }
-        } else {
-            // If no ID to update, this is a new agreement being created (less common for "tenant requests")
-            // Ensure all required fields are present for a new creation
-            if (!tenant || !property || !agreementTerms || !rentAmount || !startDate || !endDate) {
-                return res.status(400).json({ error: 'Missing required fields for new agreement creation.' });
-            }
-            agreement = new Agreement({
-                tenant,
-                landlord: req.user._id, // Landlord is the authenticated user
-                property,
-                status: status || 'approved', // Default to approved if not specified
-                signed: signed || false,
-            });
+        if (!property || !tenant || !rentAmount || !depositAmount || !startDate || !endDate || !leaseTermMonths || !agreementTerms || !signatureImage) {
+            return res.status(400).json({ message: 'Missing required fields or signature image.' });
         }
 
-        // Apply the final terms
-        agreement.finalRentAmount = rentAmount;
-        agreement.finalStartDate = startDate;
-        agreement.finalEndDate = endDate;
-        agreement.finalAgreementTerms = agreementTerms;
-        agreement.status = status || 'approved'; // Ensure status is updated
-
-        // Handle signature image upload for landlord
-        if (!req.file) {
-            return res.status(400).json({ error: 'Landlord signature image is required to finalize the agreement.' });
+        if (!isValidObjectId(property) || !isValidObjectId(tenant) || !isValidObjectId(landlordId)) {
+            return res.status(400).json({ message: 'Invalid ID format for property, tenant, or landlord.' });
         }
-        agreement.landlordSignatureImage = req.file.path;
-        agreement.signed = true; // Mark as signed by landlord
 
-        await agreement.save();
+        const [existingProperty, existingTenant] = await Promise.all([
+            Property.findById(property),
+            User.findById(tenant)
+        ]);
 
-        // Populate for PDF generation
-        const populatedAgreement = await Agreement.findById(agreement._id)
-            .populate('tenant', 'name email')
-            .populate('landlord', 'name email')
-            .populate('property', 'title address'); // Populate necessary fields for PDF
+        if (!existingProperty) return res.status(404).json({ message: 'Property not found.' });
+        if (!existingTenant || existingTenant.role !== 'tenant') return res.status(400).json({ message: 'Invalid tenant or tenant role.' });
 
-        const filePath = path.join(__dirname, '..', 'agreements', `${agreement._id}.pdf`);
-        await generateAgreementPDF(populatedAgreement, filePath);
-
-        res.status(201).json({
-            message: 'Agreement created/updated and signed by landlord successfully',
-            agreementId: agreement._id,
-            pdfPath: `/agreements/${agreement._id}.pdf`,
-            landlordSignatureImage: agreement.landlordSignatureImage
+        const newAgreement = new Agreement({
+            property,
+            landlord: landlordId,
+            tenant,
+            status: 'approved', // Directly creating an approved agreement
+            requestedTerms: { // Initial request details, same as final if directly approved
+                rent: rentAmount,
+                deposit: depositAmount,
+                moveInDate: new Date(startDate),
+                leaseTerm: leaseTermMonths,
+                endDate: new Date(endDate),
+            },
+            finalRentAmount: rentAmount,
+            finalDepositAmount: depositAmount,
+            finalStartDate: new Date(startDate),
+            finalLeaseTermMonths: leaseTermMonths,
+            finalEndDate: new Date(endDate),
+            agreementTerms,
+            landlordSigned: true,
+            signedDate: new Date(),
         });
 
-    } catch (err) {
-        console.error('Agreement creation failed:', err);
-        if (req.file) {
-            fs.unlink(req.file.path, (unlinkErr) => {
-                if (unlinkErr) console.error('Error deleting uploaded signature file after failed agreement creation:', unlinkErr);
-            });
+        const agreementSaveResult = await newAgreement.save();
+
+        // Generate PDF
+        const agreementDataForPdf = {
+            agreementId: agreementSaveResult._id.toString(),
+            propertyDetails: existingProperty.toObject(),
+            landlordDetails: req.user.toObject(), // Landlord is current authenticated user
+            tenantDetails: existingTenant.toObject(),
+            rentAmount: agreementSaveResult.finalRentAmount,
+            depositAmount: agreementSaveResult.finalDepositAmount,
+            startDate: agreementSaveResult.finalStartDate.toLocaleDateString('en-IN'),
+            endDate: agreementSaveResult.finalEndDate.toLocaleDateString('en-IN'),
+            leaseTermMonths: agreementSaveResult.finalLeaseTermMonths,
+            agreementTerms: agreementSaveResult.agreementTerms,
+            landlordSignaturePath: signatureImage.path,
+            signedDate: agreementSaveResult.signedDate.toLocaleDateString('en-IN'),
+        };
+
+        const pdfFileName = `agreement-${agreementSaveResult._id}.pdf`;
+        const pdfFilePath = path.join(__dirname, '../uploads/agreements', pdfFileName);
+
+        await generateAgreementPDF(agreementDataForPdf, pdfFilePath);
+
+        agreementSaveResult.pdfPath = `/uploads/agreements/${pdfFileName}`;
+        await agreementSaveResult.save();
+
+        res.status(201).json({
+            message: 'Agreement created successfully!',
+            agreement: agreementSaveResult,
+            pdfPath: agreementSaveResult.pdfPath,
+        });
+
+    } catch (error) {
+        console.error('Error creating agreement:', error);
+        if (error.name === 'ValidationError') {
+            const errors = Object.keys(error.errors).map(key => error.errors[key].message);
+            return res.status(400).json({ message: 'Validation failed', errors: errors });
         }
-        res.status(500).json({ error: 'Failed to create or finalize agreement' });
+        res.status(500).json({ message: 'Server error creating agreement.' });
     }
 };
 
-// Tenant requests an agreement
 exports.requestAgreement = async (req, res) => {
     try {
-        const { property, landlord, requestedTerms, agreementTerms, requestMessage } = req.body;
-
-        // Frontend sends property and landlord IDs directly, tenant ID from auth
+        const { property, landlord, rentAmount, depositAmount, startDate, endDate, leaseTermMonths, agreementTerms, message } = req.body;
         const tenantId = req.user._id;
 
-        // Basic validation for required fields
-        if (!property || !landlord || !requestedTerms || !agreementTerms ||
-            !requestedTerms.rent || !requestedTerms.deposit || !requestedTerms.moveInDate ||
-            !requestedTerms.leaseTerm || !requestedTerms.endDate) {
+        const moveInDate = new Date(startDate);
+        const termMonths = parseInt(leaseTermMonths, 10);
+        const calculatedEndDate = new Date(endDate);
+
+        if (!property || !landlord || !rentAmount || !depositAmount || !startDate || !endDate || !leaseTermMonths || !agreementTerms) {
             return res.status(400).json({ message: "Missing required fields for agreement request." });
         }
+        if (isNaN(rentAmount) || isNaN(depositAmount) || isNaN(termMonths)) {
+             return res.status(400).json({ message: "Rent, deposit, and lease term must be numbers." });
+        }
+        if (moveInDate.toString() === 'Invalid Date' || calculatedEndDate.toString() === 'Invalid Date') {
+            return res.status(400).json({ message: "Invalid start or end date provided." });
+        }
 
-        // Validate ObjectIds and existence
         if (!isValidObjectId(property) || !isValidObjectId(landlord) || !isValidObjectId(tenantId)) {
             return res.status(400).json({ message: "Invalid ID format for property, landlord, or tenant." });
         }
@@ -110,15 +132,9 @@ exports.requestAgreement = async (req, res) => {
             User.findById(tenantId)
         ]);
 
-        if (!existingProperty) {
-            return res.status(400).json({ message: "Property not found." });
-        }
-        if (!existingLandlord || existingLandlord.role !== 'landlord') {
-            return res.status(400).json({ message: "Invalid landlord or landlord role." });
-        }
-        if (!existingTenant || existingTenant.role !== 'tenant') {
-            return res.status(400).json({ message: "Invalid tenant or tenant role." });
-        }
+        if (!existingProperty) return res.status(400).json({ message: "Property not found." });
+        if (!existingLandlord || existingLandlord.role !== 'landlord') return res.status(400).json({ message: "Invalid landlord or landlord role." });
+        if (!existingTenant || existingTenant.role !== 'tenant') return res.status(400).json({ message: "Invalid tenant or tenant role." });
         if (tenantId.toString() !== existingTenant._id.toString()) {
             return res.status(403).json({ message: "Forbidden: Authenticated user is not the tenant specified." });
         }
@@ -127,114 +143,126 @@ exports.requestAgreement = async (req, res) => {
             property: property,
             landlord: landlord,
             tenant: tenantId,
-            requestedTerms: { // Store the entire requestedTerms object
-                rent: requestedTerms.rent,
-                deposit: requestedTerms.deposit,
-                moveInDate: requestedTerms.moveInDate,
-                leaseTerm: requestedTerms.leaseTerm,
-                endDate: requestedTerms.endDate,
+            status: 'pending',
+            requestMessage: message,
+            agreementTerms: agreementTerms,
+
+            requestedTerms: {
+                rent: rentAmount,
+                deposit: depositAmount,
+                moveInDate: moveInDate,
+                leaseTerm: termMonths,
+                endDate: calculatedEndDate,
             },
-            agreementTerms: agreementTerms, // General terms
-            requestMessage: requestMessage, // Optional message
-            status: 'pending', // Initial status
+            finalRentAmount: rentAmount,
+            finalDepositAmount: depositAmount,
+            finalStartDate: moveInDate,
+            finalLeaseTermMonths: termMonths,
+            finalEndDate: calculatedEndDate,
         });
 
         await newRequest.save();
 
         res.status(201).json({ message: 'Lease request sent successfully!', agreement: newRequest });
     } catch (err) {
-        console.error('Request failed:', err);
+        console.error('Error in requestAgreement:', err);
         if (err.name === 'ValidationError') {
             const errors = Object.keys(err.errors).map(key => err.errors[key].message);
             return res.status(400).json({ message: "Validation failed", errors: errors });
         }
-        res.status(500).json({ error: 'Could not request agreement' });
+        res.status(500).json({ error: 'Server error: Could not request agreement.' });
     }
 };
 
-// Landlord updates agreement status (approve/reject)
 exports.updateAgreementStatus = async (req, res) => {
     try {
+        const { id } = req.params;
         const { status } = req.body;
-        const agreementId = req.params.id;
+        const landlordId = req.user._id;
 
-        if (!['approved', 'rejected', 'negotiating', 'signed', 'cancelled'].includes(status)) { // Expanded enum
-            return res.status(400).json({ error: 'Invalid status provided.' });
+        if (!isValidObjectId(id)) {
+            return res.status(400).json({ message: 'Invalid agreement ID format.' });
         }
-        if (!isValidObjectId(agreementId)) {
-            return res.status(400).json({ message: "Invalid agreement ID format." });
+        if (!status || !['approved', 'rejected', 'cancelled'].includes(status)) {
+            return res.status(400).json({ message: 'Invalid status provided.' });
         }
 
-        const agreement = await Agreement.findById(agreementId);
+        const agreement = await Agreement.findById(id);
+
         if (!agreement) {
-            return res.status(404).json({ error: 'Agreement not found.' });
+            return res.status(404).json({ message: 'Agreement not found.' });
         }
-        if (agreement.landlord.toString() !== req.user._id.toString()) {
-            return res.status(403).json({ error: 'Forbidden: You are not the landlord of this agreement.' });
+        if (agreement.landlord.toString() !== landlordId.toString()) {
+            return res.status(403).json({ message: 'Forbidden: You are not authorized to update this agreement.' });
+        }
+
+        // Only allow status changes from 'pending' or 'negotiating'
+        if (!['pending', 'negotiating'].includes(agreement.status)) {
+            return res.status(400).json({ message: `Agreement cannot be updated from status '${agreement.status}'.` });
         }
 
         agreement.status = status;
 
-        // If approved, set final terms from requested terms (or current negotiated terms)
         if (status === 'approved') {
-            // If already negotiated, use those terms, otherwise use requested terms
-            agreement.finalRentAmount = agreement.finalRentAmount || agreement.requestedTerms.rent;
-            agreement.finalStartDate = agreement.finalStartDate || agreement.requestedTerms.moveInDate;
-            agreement.finalEndDate = agreement.finalEndDate || agreement.requestedTerms.endDate;
-            agreement.finalAgreementTerms = agreement.finalAgreementTerms || agreement.agreementTerms;
+            agreement.landlordSigned = true; // Landlord approves means landlord signed current terms
+            agreement.signedDate = new Date(); // Set signed date upon approval
+            // The final terms are already set by request or last negotiation, no need to re-copy
         }
 
         await agreement.save();
 
-        // If approved, generate PDF (assuming PDF generation is part of approval)
-        if (status === 'approved') {
-            const populatedAgreement = await Agreement.findById(agreementId)
-                .populate('tenant', 'name email')
-                .populate('landlord', 'name email')
-                .populate('property', 'title address');
-
-            const filePath = path.join(__dirname, '..', 'agreements', `${agreementId}.pdf`);
-            await generateAgreementPDF(populatedAgreement, filePath);
-        }
-
-        res.json({ message: `Agreement status updated to ${status}`, agreement: updatedAgreement });
-    } catch (err) {
-        console.error('Status update failed:', err);
-        res.status(500).json({ error: 'Status update failed' });
+        res.status(200).json({ message: `Agreement status updated to ${status}.`, agreement });
+    } catch (error) {
+        console.error('Error updating agreement status:', error);
+        res.status(500).json({ message: 'Server error updating agreement status.' });
     }
 };
 
-// Landlord negotiates terms
 exports.negotiateAgreement = async (req, res) => {
     try {
         const { id } = req.params;
-        const { rentAmount, moveInDate, leaseTerm, endDate, agreementTerms, message } = req.body; // New terms from landlord
+        const { rentAmount, depositAmount, startDate, endDate, leaseTermMonths, agreementTerms } = req.body;
+        const landlordId = req.user._id;
 
         if (!isValidObjectId(id)) {
             return res.status(400).json({ message: "Invalid agreement ID format." });
+        }
+
+        if (!rentAmount || !depositAmount || !startDate || !endDate || !leaseTermMonths || !agreementTerms) {
+            return res.status(400).json({ message: "Missing required negotiation terms (rentAmount, depositAmount, startDate, endDate, leaseTermMonths, agreementTerms)." });
+        }
+
+        const finalMoveInDate = new Date(startDate);
+        const finalTermMonths = parseInt(leaseTermMonths, 10);
+        const finalCalculatedEndDate = new Date(endDate);
+
+        if (isNaN(rentAmount) || isNaN(depositAmount) || isNaN(finalTermMonths)) {
+             return res.status(400).json({ message: "Negotiated rent, deposit, and lease term must be numbers." });
+        }
+        if (finalMoveInDate.toString() === 'Invalid Date' || finalCalculatedEndDate.toString() === 'Invalid Date') {
+            return res.status(400).json({ message: "Invalid negotiated start or end date provided." });
         }
 
         const agreement = await Agreement.findById(id);
         if (!agreement) {
             return res.status(404).json({ message: "Agreement not found." });
         }
-        if (agreement.landlord.toString() !== req.user._id.toString()) {
+        if (agreement.landlord.toString() !== landlordId.toString()) {
             return res.status(403).json({ message: "Forbidden: You are not authorized to negotiate this agreement." });
         }
 
-        // Only allow negotiation if status is pending or currently negotiating
         if (!['pending', 'negotiating'].includes(agreement.status)) {
             return res.status(400).json({ message: `Agreement status is ${agreement.status}. Only 'pending' or 'negotiating' agreements can be negotiated.` });
         }
 
-        // Update the 'final' terms with the new negotiated values
         agreement.finalRentAmount = rentAmount;
-        agreement.finalStartDate = moveInDate;
-        agreement.finalEndDate = endDate;
-        agreement.finalAgreementTerms = agreementTerms;
-        agreement.requestMessage = message; // Update message if landlord sends one back
-        agreement.status = 'negotiating'; // Set status to negotiating
-        agreement.lastNegotiatedBy = req.user._id; // Track who last negotiated
+        agreement.finalDepositAmount = depositAmount;
+        agreement.finalStartDate = finalMoveInDate;
+        agreement.finalLeaseTermMonths = finalTermMonths;
+        agreement.finalEndDate = finalCalculatedEndDate;
+        agreement.agreementTerms = agreementTerms;
+        agreement.status = 'negotiating';
+        agreement.lastNegotiatedBy = landlordId;
 
         await agreement.save();
 
@@ -250,15 +278,17 @@ exports.negotiateAgreement = async (req, res) => {
     }
 };
 
-// Get all pending requests for a landlord
 exports.getRequestsForLandlord = async (req, res) => {
     try {
         const landlordId = req.user._id;
 
-        const requests = await Agreement.find({ landlord: landlordId, status: { $in: ['pending', 'negotiating'] } }) // Include negotiating agreements
-            .populate('tenant', 'name email profilePic') // Populate tenant info
-            .populate('property', 'title propertyName address city state location imageUrl image') // Populate property info
-            .sort({ createdAt: -1 });
+        const requests = await Agreement.find({
+            landlord: landlordId,
+            status: { $in: ['pending', 'negotiating', 'approved', 'rejected'] } // Include approved/rejected for historical view if needed
+        })
+        .populate('tenant', 'name email username profilePic')
+        .populate('property', 'title propertyName address city state location imageUrl image')
+        .sort({ createdAt: -1 });
 
         res.status(200).json({ requests });
 
@@ -268,33 +298,36 @@ exports.getRequestsForLandlord = async (req, res) => {
     }
 };
 
-// Get a single agreement by ID
 exports.getAgreementById = async (req, res) => {
     try {
-        const agreementId = req.params.id;
-        if (!isValidObjectId(agreementId)) {
-            return res.status(400).json({ message: "Invalid agreement ID format." });
+        const { id } = req.params;
+        const userId = req.user._id; // Authenticated user
+        const userRole = req.user.role; // Authenticated user role
+
+        if (!isValidObjectId(id)) {
+            return res.status(400).json({ message: 'Invalid agreement ID format.' });
         }
 
-        const agreement = await Agreement.findById(agreementId)
-            .populate('tenant', 'name email profilePic')
-            .populate('landlord', 'name email profilePic')
-            .populate('property', 'title propertyName address city state location imageUrl image price'); // Populate all relevant fields
+        const agreement = await Agreement.findById(id)
+            .populate('landlord', 'name email username')
+            .populate('tenant', 'name email username')
+            .populate('property', 'title address city state imageUrl');
 
         if (!agreement) {
-            return res.status(404).json({ message: "Agreement not found." });
+            return res.status(404).json({ message: 'Agreement not found.' });
         }
 
-        // Ensure only authorized users can view the agreement
-        if (agreement.tenant.toString() !== req.user._id.toString() &&
-            agreement.landlord.toString() !== req.user._id.toString()) {
-            return res.status(403).json({ message: "Forbidden: You are not authorized to view this agreement." });
+        // Authorization check: User must be either the landlord or the tenant of this agreement
+        if (userRole === 'landlord' && agreement.landlord.toString() !== userId.toString()) {
+            return res.status(403).json({ message: 'Forbidden: You are not authorized to view this agreement.' });
+        }
+        if (userRole === 'tenant' && agreement.tenant.toString() !== userId.toString()) {
+            return res.status(403).json({ message: 'Forbidden: You are not authorized to view this agreement.' });
         }
 
         res.status(200).json({ agreement });
-
     } catch (error) {
-        console.error("Error fetching agreement by ID:", error);
-        res.status(500).json({ message: "Server error fetching agreement details.", error: error.message });
+        console.error('Error fetching agreement by ID:', error);
+        res.status(500).json({ message: 'Server error fetching agreement.' });
     }
 };
