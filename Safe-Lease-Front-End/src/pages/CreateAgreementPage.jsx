@@ -1,24 +1,33 @@
+// frontend/src/pages/CreateAgreementPage.jsx
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import axiosbase from '../config/axios-config';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../hooks/useAuth';
 
+// Import a simple signature pad component or library if you have one.
+// For this example, we'll use a basic text input for signature path/data.
+// In a real app, you'd integrate a library like 'react-signature-canvas' or similar.
+
 const CreateAgreementPage = () => {
     const navigate = useNavigate();
-    const { propertyId, landlordId } = useParams();
+    const { id: agreementId } = useParams(); // For existing agreement (landlord flow)
+    const { propertyId, landlordId: routeLandlordId } = useParams(); // For new tenant request flow
+    const location = useLocation(); // To access state passed via navigate
+
     const { user, isAuthenticated, backendToken, loading: authLoading } = useAuth();
 
     const [formData, setFormData] = useState({
         property: propertyId || '',
-        landlord: landlordId || '',
+        landlord: routeLandlordId || '',
         startDate: '',
         rentAmount: '',
         agreementTerms: '',
         message: '',
-        leaseTerm: 12, // This should map to leaseTermMonths on backend
-        deposit: ''    // This should map to depositAmount on backend
+        leaseTerm: 12,
+        deposit: ''
     });
+    const [signature, setSignature] = useState(null); // State to hold signature data (e.g., File object)
     const [submitting, setSubmitting] = useState(false);
     const [formErrors, setFormErrors] = useState({});
 
@@ -26,38 +35,79 @@ const CreateAgreementPage = () => {
     const [landlordDetails, setLandlordDetails] = useState(null);
     const [fetchingDetails, setFetchingDetails] = useState(true);
 
+    // Flags to determine the action context
+    const isLandlordAction = !!agreementId; // True if agreementId exists in URL params
+    const isApprovalAction = location.state?.isApprovalAction;
+    const isNegotiationAction = location.state?.isNegotiationAction;
+
     useEffect(() => {
-        if (!propertyId || !landlordId) {
+        if (authLoading) return;
+
+        // Redirect if not authenticated or not the correct role for the action
+        if (!isAuthenticated || !backendToken || !user?.id) {
+            setFetchingDetails(false);
+            if (!isLandlordAction) { // Only show error for tenant's initial creation if not logged in
+                toast.error("You must be logged in to access this page.");
+                navigate('/login');
+            }
+            return;
+        }
+
+        if (!isLandlordAction && user.role !== 'tenant') {
+            toast.error("Only tenants can initiate agreement requests.");
+            navigate('/');
+            return;
+        }
+        if (isLandlordAction && user.role !== 'landlord') {
+            toast.error("Only landlords can finalize agreement requests.");
+            navigate('/');
+            return;
+        }
+
+        // Pre-fill form if it's a landlord action from LandlordRequests
+        if (isLandlordAction && location.state?.agreementData) {
+            const { agreementData } = location.state;
+            setFormData({
+                property: agreementData.property,
+                landlord: agreementData.landlord,
+                startDate: agreementData.startDate, // Already formatted 'YYYY-MM-DD' from LandlordRequests
+                rentAmount: agreementData.rentAmount,
+                agreementTerms: agreementData.agreementTerms,
+                message: agreementData.message,
+                leaseTerm: agreementData.leaseTerm,
+                deposit: agreementData.deposit,
+            });
+        } else if (!isLandlordAction && (!propertyId || !routeLandlordId)) {
+            // For new tenant creation, ensure IDs are in URL
             toast.error("Property ID or Landlord ID is missing in the URL. Cannot create agreement request.");
             navigate('/properties');
             return;
         }
-        if (authLoading || !isAuthenticated || !backendToken || !user?.id) {
-            setFetchingDetails(false);
-            return;
-        }
-        if (user.role !== 'tenant') {
-            toast.error("Only tenants can request agreements.");
-            setFetchingDetails(false);
-            return;
+
+        const currentPropertyId = formData.property || propertyId;
+        const currentLandlordId = formData.landlord || routeLandlordId;
+
+        if (!currentPropertyId || !currentLandlordId) {
+             setFetchingDetails(false);
+             return;
         }
 
         const fetchDetails = async () => {
             setFetchingDetails(true);
             try {
-                const propertyRes = await axiosbase.get(`/properties/${propertyId}`, {
+                const propertyRes = await axiosbase.get(`/properties/${currentPropertyId}`, {
                     headers: { Authorization: `Bearer ${backendToken}` }
                 });
                 setPropertyDetails(propertyRes.data);
 
-                const landlordRes = await axiosbase.get(`/auth/profile/${landlordId}`, {
+                const landlordRes = await axiosbase.get(`/auth/profile/${currentLandlordId}`, {
                     headers: { Authorization: `Bearer ${backendToken}` }
                 });
                 setLandlordDetails(landlordRes.data);
 
             } catch (error) {
                 console.error("Error fetching details:", error);
-                const errorMessage = error.response?.data?.message || error.message || "Failed to load property or landlord details. Please check the URL.";
+                const errorMessage = error.response?.data?.message || error.message || "Failed to load property or landlord details.";
                 toast.error(errorMessage);
                 setPropertyDetails(null);
                 setLandlordDetails(null);
@@ -66,7 +116,12 @@ const CreateAgreementPage = () => {
             }
         };
         fetchDetails();
-    }, [propertyId, landlordId, navigate, authLoading, isAuthenticated, backendToken, user]);
+    }, [
+        propertyId, routeLandlordId, navigate, authLoading, isAuthenticated,
+        backendToken, user, location.state, agreementId, isLandlordAction,
+        isApprovalAction, isNegotiationAction, formData.property, formData.landlord
+    ]);
+
 
     const validateForm = () => {
         const errors = {};
@@ -76,10 +131,7 @@ const CreateAgreementPage = () => {
         if (!formData.leaseTerm || parseInt(formData.leaseTerm, 10) <= 0) errors.leaseTerm = "Lease term must be a positive number of months.";
         if (!formData.agreementTerms) errors.agreementTerms = "Agreement terms are required.";
 
-        if (!propertyId) errors.property = "Property ID is missing in URL.";
-        if (!landlordId) errors.landlord = "Landlord ID is missing in URL.";
-        if (!user?.id) errors.tenant = "Tenant not logged in.";
-
+        if (isApprovalAction && !signature) errors.signature = "Landlord signature is required for approval.";
 
         setFormErrors(errors);
         return Object.keys(errors).length === 0;
@@ -100,6 +152,21 @@ const CreateAgreementPage = () => {
         }
     };
 
+    const handleSignatureChange = (e) => {
+        // For a real signature pad, you'd get base64 or a Blob.
+        // For this example, let's assume it's a file input.
+        if (e.target.files && e.target.files[0]) {
+            setSignature(e.target.files[0]);
+            if (formErrors.signature) {
+                setFormErrors(prevErrors => {
+                    const newErrors = { ...prevErrors };
+                    delete newErrors.signature;
+                    return newErrors;
+                });
+            }
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
 
@@ -110,8 +177,8 @@ const CreateAgreementPage = () => {
 
         setSubmitting(true);
 
-        if (!isAuthenticated || !backendToken || !user?.id || user.role !== 'tenant') {
-            toast.error("You must be logged in as a tenant to create an agreement.");
+        if (!isAuthenticated || !backendToken || !user?.id) {
+            toast.error("Authentication required.");
             setSubmitting(false);
             return;
         }
@@ -120,41 +187,69 @@ const CreateAgreementPage = () => {
             const parsedStartDate = new Date(formData.startDate);
             const calculatedEndDate = new Date(parsedStartDate);
             calculatedEndDate.setMonth(parsedStartDate.getMonth() + parseInt(formData.leaseTerm, 10));
+            // Adjust end date if day of month rolls over (e.g., Jan 31 + 1 month = Feb 28/29)
             if (calculatedEndDate.getDate() !== parsedStartDate.getDate()) {
                 calculatedEndDate.setDate(0);
             }
             const isoEndDate = calculatedEndDate.toISOString();
 
-            // *** IMPORTANT: THIS IS THE KEY CHANGE HERE ***
-            // Flatten the structure to match backend expectations (agreement-Controller.js)
-            const agreementData = {
+            // Prepare common data for both new request and update/negotiate
+            const payload = {
                 property: formData.property,
                 landlord: formData.landlord,
-                // tenant: user.id, // The backend gets tenant from the token, so no need to send it explicitly
-                rentAmount: parseFloat(formData.rentAmount), // Matches backend 'rentAmount'
-                depositAmount: parseFloat(formData.deposit), // Matches backend 'depositAmount'
-                startDate: new Date(formData.startDate).toISOString(), // Matches backend 'startDate'
-                endDate: isoEndDate, // Matches backend 'endDate'
-                leaseTermMonths: parseInt(formData.leaseTerm, 10), // Matches backend 'leaseTermMonths'
+                rentAmount: parseFloat(formData.rentAmount),
+                depositAmount: parseFloat(formData.deposit),
+                startDate: parsedStartDate.toISOString(),
+                endDate: isoEndDate,
+                leaseTermMonths: parseInt(formData.leaseTerm, 10),
                 agreementTerms: formData.agreementTerms,
-                message: formData.message, // Maps to 'requestMessage' on backend
+                message: formData.message,
             };
 
-            console.log("Sending agreement data:", agreementData);
+            let response;
+            if (isLandlordAction && agreementId) {
+                // Landlord is approving or negotiating an existing agreement
+                if (isApprovalAction) {
+                    // For approval, create FormData to send file (signature)
+                    const formDataWithSignature = new FormData();
+                    for (const key in payload) {
+                        formDataWithSignature.append(key, payload[key]);
+                    }
+                    if (signature) {
+                        formDataWithSignature.append('signature', signature);
+                    }
 
-            const response = await axiosbase.post("/agreements/request", agreementData, {
-                headers: {
-                    'Authorization': `Bearer ${backendToken}`
+                    response = await axiosbase.put(`/agreements/${agreementId}/approve`, formDataWithSignature, {
+                        headers: {
+                            'Authorization': `Bearer ${backendToken}`,
+                            'Content-Type': 'multipart/form-data' // Important for file uploads
+                        },
+                    });
+                } else if (isNegotiationAction) {
+                    response = await axiosbase.put(`/agreements/${agreementId}/negotiate`, payload, {
+                        headers: { 'Authorization': `Bearer ${backendToken}` }
+                    });
+                } else {
+                    throw new Error("Invalid landlord action (approval/negotiation status missing).");
                 }
-            });
+            } else {
+                // Tenant is creating a new agreement request
+                if (user.role !== 'tenant') {
+                    toast.error("Only tenants can initiate new agreement requests.");
+                    setSubmitting(false);
+                    return;
+                }
+                response = await axiosbase.post("/agreements/request", { ...payload, tenant: user.id }, {
+                    headers: { 'Authorization': `Bearer ${backendToken}` }
+                });
+            }
 
-            toast.success(response.data.message || 'Agreement request sent successfully!');
-            navigate(-1);
+            toast.success(response.data.message || 'Agreement action successful!');
+            navigate('/dashboard'); // Navigate to a relevant page after success
         } catch (error) {
-            console.error('Error sending agreement request:', error);
-            const errorMessage = error.response?.data?.message || error.message || 'Failed to send agreement request. Please try again.';
+            console.error('Error in agreement action:', error);
+            const errorMessage = error.response?.data?.message || error.message || 'Failed to process agreement. Please try again.';
             toast.error(errorMessage);
-
         } finally {
             setSubmitting(false);
         }
@@ -169,12 +264,22 @@ const CreateAgreementPage = () => {
         );
     }
 
-    const isFormDisabled = !propertyDetails || !landlordDetails || !isAuthenticated || !user?.id || user.role !== 'tenant';
+    const isFormDisabled = (!propertyDetails || !landlordDetails || !isAuthenticated || !user?.id || (isLandlordAction && user.role !== 'landlord') || (!isLandlordAction && user.role !== 'tenant'));
+
+    let pageTitle = "Request Lease Agreement";
+    let submitButtonText = "Send Agreement Request";
+    if (isApprovalAction) {
+        pageTitle = "Approve & Finalize Lease Agreement";
+        submitButtonText = "Approve Agreement";
+    } else if (isNegotiationAction) {
+        pageTitle = "Negotiate Lease Agreement Terms";
+        submitButtonText = "Submit Negotiated Terms";
+    }
 
     return (
         <div className="container mx-auto p-4 my-8 font-sans">
             <h1 className="text-3xl font-bold mb-6 text-center text-blue-800">
-                Request Lease Agreement
+                {pageTitle}
             </h1>
             <form onSubmit={handleSubmit} className="bg-white p-8 rounded-lg shadow-xl max-w-2xl mx-auto border border-gray-200">
                 {isFormDisabled && (
@@ -182,7 +287,8 @@ const CreateAgreementPage = () => {
                         <strong className="font-bold">Error:</strong>
                         <span className="block sm:inline ml-2">
                             {(!isAuthenticated || !user?.id) && "You are not logged in or your session has expired. "}
-                            {user?.role === 'landlord' && "Only tenants can request agreements. "}
+                            {(!isLandlordAction && user?.role === 'landlord') && "Only tenants can initiate agreement requests. "}
+                            {(isLandlordAction && user?.role === 'tenant') && "Only landlords can finalize agreement requests. "}
                             {!propertyDetails && "Property details failed to load. "}
                             {!landlordDetails && "Landlord details failed to load."}
                         </span>
@@ -193,7 +299,7 @@ const CreateAgreementPage = () => {
                     <div className="mb-4 p-3 bg-blue-50 rounded-md border border-blue-200">
                         <h2 className="text-lg font-semibold text-blue-700">Property: {propertyDetails.title || 'N/A'}</h2>
                         <p className="text-sm text-gray-600">Address: {propertyDetails.address?.street}, {propertyDetails.address?.city}</p>
-                        <p className="text-sm text-gray-600">Rent: ₹{propertyDetails.rent?.toLocaleString() || 'N/A'}</p>
+                        <p className="text-sm text-gray-600">Listed Rent: ₹{propertyDetails.rent?.toLocaleString() || 'N/A'}</p>
                     </div>
                 )}
                 {landlordDetails && (
@@ -281,25 +387,45 @@ const CreateAgreementPage = () => {
                 </div>
 
                 <div className="mb-6">
-                    <label htmlFor="message" className="block text-gray-700 text-sm font-bold mb-2">Message to Landlord (Optional):</label>
+                    <label htmlFor="message" className="block text-gray-700 text-sm font-bold mb-2">Message to {isLandlordAction ? 'Tenant' : 'Landlord'} (Optional):</label>
                     <textarea
                         id="message"
                         name="message"
                         value={formData.message}
                         onChange={handleChange}
                         rows="3"
-                        placeholder="E.g., 'Looking forward to hearing from you! I'm available for a call next week.'"
+                        placeholder={isLandlordAction ? "E.g., 'These are my counter-terms, let me know if they work for you!'" : "E.g., 'Looking forward to hearing from you! I'm available for a call next week.'"}
                         className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 border-gray-300"
                         disabled={isFormDisabled || submitting}
                     ></textarea>
                 </div>
+
+                {isApprovalAction && (
+                    <div className="mb-6">
+                        <label htmlFor="signature" className="block text-gray-700 text-sm font-bold mb-2">
+                            Landlord Signature (Upload Image):
+                        </label>
+                        <input
+                            type="file"
+                            id="signature"
+                            name="signature"
+                            accept="image/*"
+                            onChange={handleSignatureChange}
+                            className={`shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 ${formErrors.signature ? 'border-red-500' : 'border-gray-300'}`}
+                            required={isApprovalAction} // Signature is required only for approval
+                            disabled={isFormDisabled || submitting}
+                        />
+                        {formErrors.signature && <p className="text-red-500 text-xs italic mt-1">{formErrors.signature}</p>}
+                        <p className="text-gray-500 text-xs mt-1">Upload a clear image of your signature.</p>
+                    </div>
+                )}
 
                 <button
                     type="submit"
                     disabled={submitting || isFormDisabled}
                     className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline w-full transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                    {submitting ? 'Sending Request...' : 'Send Agreement Request'}
+                    {submitting ? 'Processing Request...' : submitButtonText}
                 </button>
             </form>
         </div>

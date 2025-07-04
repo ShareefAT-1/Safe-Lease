@@ -1,5 +1,7 @@
+// frontend/src/App.jsx
+
 import React from "react";
-import { Route, Routes } from "react-router-dom"; 
+import { Route, Routes } from "react-router-dom";   
 
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
@@ -12,11 +14,16 @@ import AllProducts from "./pages/AllProducts";
 import SingleProperty from "./pages/SingleProperty";
 
 import PropertyForm from "./components/PropertyForm";
-import CreateAgreementPage from "./pages/CreateAgreementPage"; 
 
-import TestLandlordRequests from "./pages/TestLandlordRequests";
-import TestRequestAgreement from "./pages/TestRequestAgreement";
-import LandlordChatsPage from "./pages/LandlordChatsPage"; 
+// Import the LandlordRequests component that you've been working on
+import LandlordRequests from "./components/Agreement/LandlordRequests"; // <--- Use this one!
+import CreateAgreementPage from "./pages/CreateAgreementPage";
+
+// You can likely remove these test components once you're confident
+// import TestLandlordRequests from "./pages/TestLandlordRequests";
+// import TestRequestAgreement from "./pages/TestRequestAgreement";
+
+import LandlordChatsPage from "./pages/LandlordChatsPage";
 
 import LandlordDashboard from "./pages/LandlordDashboard";
 import TenantDashboard from "./pages/TenantDashboard";
@@ -35,13 +42,24 @@ function App() {
         <Route path="/property/:id" element={<SingleProperty />} />
         <Route path="/create-property" element={<PropertyForm />} />
 
-        <Route path="/create-agreement/:propertyId/:landlordId" element={<CreateAgreementPage />} />
+        {/* Tenant creates a NEW agreement request for a specific property/landlord */}
+        <Route path="/agreements/create/:propertyId/:landlordId" element={<CreateAgreementPage />} />
+
+        {/* Landlord views all their requests */}
+        {/* Changed path from "/test/landlord-requests" */}
+        <Route path="/landlord/requests" element={<LandlordRequests />} />
+
+        {/* Landlord finalizes/negotiates an EXISTING agreement */}
+        {/* The :id here refers to the Agreement ID */}
+        <Route path="/agreements/finalize/:id" element={<CreateAgreementPage />} />
+
 
         <Route path="/landlord-dashboard" element={<LandlordDashboard />} />
         <Route path="/tenant-dashboard" element={<TenantDashboard />} />
 
-        <Route path="/test/landlord-requests" element={<TestLandlordRequests />} />
-        <Route path="/test/request-agreement" element={<TestRequestAgreement />} />
+        {/* You can remove these test routes if they are no longer needed */}
+        {/* <Route path="/test/request-agreement" element={<TestRequestAgreement />} /> */}
+
         <Route path="/landlord-chats" element={<LandlordChatsPage />} />
       </Routes>
       <Footer />

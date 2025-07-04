@@ -1,81 +1,140 @@
+// Safe-Lease Back-End/utils/generatePDF.js
+
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
 
-const generateAgreementPDF = (agreementData, outputPath) => {
-  const doc = new PDFDocument({
-    margin: 50,
-    size: 'A4',
-  });
+const generateAgreementPDF = async (agreementData, outputPath) => {
+    return new Promise((resolve, reject) => {
+        const doc = new PDFDocument({
+            size: 'A4',
+            margins: { top: 50, bottom: 50, left: 50, right: 50 }
+        });
 
-  doc.pipe(fs.createWriteStream(outputPath));
+        const stream = fs.createWriteStream(outputPath);
+        doc.pipe(stream);
 
-  doc.fontSize(20).text('Rental Agreement', { align: 'center' });
-  doc.moveDown(2);
+        // Helper function for adding sections
+        const addSection = (title, content, bold = false) => {
+            doc.moveDown(0.8);
+            doc.font(bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(14).text(title);
+            doc.moveDown(0.3);
+            doc.font('Helvetica').fontSize(12).text(content, { indent: 20 });
+        };
 
-  const sectionTitle = (num, title) => {
-    doc.moveDown(1);
-    doc.font('Helvetica-Bold').fontSize(14).text(`${num}. ${title}`);
-    doc.moveDown(0.5);
-    doc.font('Helvetica').fontSize(12);
-  };
+        // --- Document Header ---
+        doc.fontSize(22).font('Helvetica-Bold').text('LEASE AGREEMENT', { align: 'center' });
+        doc.moveDown(0.7);
+        doc.fontSize(12).font('Helvetica').text(`Agreement ID: ${agreementData.agreementId || 'N/A'}`, { align: 'center' });
+        doc.moveDown(1.5);
 
-  sectionTitle('1', 'Property:');
-  doc.text(`The Landlord hereby leases to the Tenant the Property titled:\n"${agreementData.property?.title || 'Property Title'}"`, {
-    indent: 20,
-  });
-  doc.text('Address: ____________________________', { indent: 20 });
-  doc.text('Square Footage: __________ sq. ft.', { indent: 20 });
+        // --- Parties Involved ---
+        doc.fontSize(16).font('Helvetica-Bold').text('1. PARTIES INVOLVED', { underline: true });
+        doc.moveDown(0.5);
 
-  sectionTitle('2', 'Term:');
-  doc.text('The lease term shall commence on ', { continued: true, indent: 20 });
-  doc.text(agreementData.startDate.toDateString(), { continued: true, underline: true });
-  doc.text(' and shall continue until ', { continued: true });
-  doc.text(agreementData.endDate.toDateString(), { underline: true });
-  doc.text(', unless terminated earlier in accordance with this Agreement.');
+        doc.fontSize(12).font('Helvetica-Bold').text('LANDLORD:');
+        doc.font('Helvetica').text(`Name: ${agreementData.landlordDetails?.name || ''} ${agreementData.landlordDetails?.lastName || ''}`);
+        doc.text(`Email: ${agreementData.landlordDetails?.email || 'N/A'}`);
+        doc.text(`Contact No: ${agreementData.landlordDetails?.contactNumber || 'N/A'}`);
+        doc.moveDown(0.8);
 
-  sectionTitle('3', 'Rent:');
-  doc.text('The Tenant agrees to pay a monthly rent of ', { continued: true, indent: 20 });
-  doc.text(`₹${agreementData.rentAmount}`, { underline: true });
-  doc.text(', payable in advance on or before the 5th day of each month.');
+        doc.font('Helvetica-Bold').text('TENANT:');
+        doc.font('Helvetica').text(`Name: ${agreementData.tenantDetails?.name || ''} ${agreementData.tenantDetails?.lastName || ''}`);
+        doc.text(`Email: ${agreementData.tenantDetails?.email || 'N/A'}`);
+        doc.text(`Contact No: ${agreementData.tenantDetails?.contactNumber || 'N/A'}`);
+        doc.moveDown(1.5);
 
-  sectionTitle('4', 'Use of Premises:');
-  doc.text('The Tenant agrees to use the property solely for residential purposes and shall not engage in any unlawful activities.', {
-    indent: 20,
-  });
+        // --- Property Details ---
+        doc.fontSize(16).font('Helvetica-Bold').text('2. PROPERTY DETAILS', { underline: true });
+        doc.moveDown(0.5);
+        doc.fontSize(12).font('Helvetica');
+        doc.text(`Property Title: ${agreementData.propertyDetails?.title || 'N/A'}`);
+        if (agreementData.propertyDetails?.address) {
+            const address = agreementData.propertyDetails.address;
+            doc.text(`Address: ${address.street}, ${address.city}, ${address.state}, ${address.zipCode || 'N/A'}`);
+        } else {
+            doc.text('Address: N/A');
+        }
+        doc.text(`Listed Rent (as per property listing): ₹${agreementData.propertyDetails?.rent?.toLocaleString('en-IN') || 'N/A'}`);
+        doc.moveDown(1.5);
 
-  sectionTitle('5', 'Maintenance and Repairs:');
-  doc.text('The Landlord shall maintain the structural integrity of the property.', { indent: 20 });
-  doc.text('The Tenant shall keep the property clean and shall be responsible for any damage caused by negligence or misuse.', {
-    indent: 20,
-  });
+        // --- Lease Terms ---
+        doc.fontSize(16).font('Helvetica-Bold').text('3. LEASE TERMS', { underline: true });
+        doc.moveDown(0.5);
+        doc.fontSize(12).font('Helvetica');
+        doc.text(`Monthly Rent: ₹${agreementData.rentAmount?.toLocaleString('en-IN') || 'N/A'}`);
+        doc.text(`Security Deposit: ₹${agreementData.depositAmount?.toLocaleString('en-IN') || 'N/A'}`);
+        doc.text(`Lease Start Date: ${agreementData.startDate || 'N/A'}`);
+        doc.text(`Lease End Date: ${agreementData.endDate || 'N/A'}`);
+        doc.text(`Lease Term: ${agreementData.leaseTermMonths || 'N/A'} months`);
+        doc.moveDown(1.5);
 
-  sectionTitle('6', 'Agreement Terms:');
-  if (agreementData.agreementTerms) {
-    doc.text(agreementData.agreementTerms, { underline: true, indent: 20 });
-  } else {
-    doc.text('No terms provided.', { indent: 20 });
-  }
+        // --- General Agreement Terms ---
+        doc.fontSize(16).font('Helvetica-Bold').text('4. GENERAL AGREEMENT TERMS', { underline: true });
+        doc.moveDown(0.5);
+        doc.fontSize(12).font('Helvetica').text(agreementData.agreementTerms || 'No specific terms provided.', {
+            align: 'justify',
+            indent: 20
+        });
+        doc.moveDown(1.5);
 
-  sectionTitle('7', 'Termination:');
-  doc.text('Either party may terminate this Agreement by providing written notice in accordance with the terms agreed upon.', {
-    indent: 20,
-  });
+        // --- Signatures ---
+        doc.fontSize(16).font('Helvetica-Bold').text('5. SIGNATURES', { underline: true });
+        doc.moveDown(1);
 
-  sectionTitle('8', 'Signed Status:');
-  doc.text(agreementData.signed ? 'Signed by both parties.' : 'Not yet signed', { indent: 20 });
-  doc.moveDown(2);
+        // Landlord Signature
+        doc.font('Helvetica-Bold').fontSize(12).text('LANDLORD:');
+        if (agreementData.landlordSignaturePath && fs.existsSync(agreementData.landlordSignaturePath)) {
+            doc.image(agreementData.landlordSignaturePath, {
+                fit: [150, 60], // Adjust size as needed for signatures
+                align: 'left',
+                valign: 'top'
+            });
+            doc.moveDown(2.5); // Adjust spacing after image
+        } else {
+            doc.moveDown(3); // Space for signature line if no image
+        }
+        doc.font('Helvetica').text('____________________________________');
+        doc.text(`Name: ${agreementData.landlordDetails?.name || ''} ${agreementData.landlordDetails?.lastName || ''}`);
+        doc.text(`Date: ${agreementData.signedDate || 'N/A'}`);
+        doc.moveDown(2);
 
-  doc.text('IN WITNESS WHEREOF, the parties have executed this Rental Agreement.\n', { align: 'center' });
-  doc.moveDown(1);
+        // Tenant Signature (initially blank, filled upon tenant signing)
+        doc.font('Helvetica-Bold').text('TENANT:');
+        if (agreementData.tenantSignaturePath && fs.existsSync(agreementData.tenantSignaturePath)) {
+            doc.image(agreementData.tenantSignaturePath, {
+                fit: [150, 60], // Adjust size as needed
+                align: 'left',
+                valign: 'top'
+            });
+            doc.moveDown(2.5);
+        } else {
+            doc.moveDown(3);
+        }
+        doc.font('Helvetica').text('____________________________________');
+        doc.text(`Name: ${agreementData.tenantDetails?.name || ''} ${agreementData.tenantDetails?.lastName || ''}`);
+        doc.text(`Date: ${agreementData.tenantSignedDate || '_______________________'}`); // Placeholder for tenant signed date
+        doc.moveDown(2);
 
-  doc.text(`Landlord: ${agreementData.landlord?.name || 'Landlord Name'}`, { indent: 20 });
-  doc.text('Signature: ___________________________     Date: _______________', { indent: 20 });
-  doc.moveDown(1);
-  doc.text(`Tenant: ${agreementData.tenant?.name || 'Tenant Name'}`, { indent: 20 });
-  doc.text('Signature: ___________________________     Date: _______________', { indent: 20 });
 
-  doc.end();
+        // --- Footer ---
+        doc.fontSize(9).font('Helvetica-Oblique').text(`Generated on ${new Date().toLocaleDateString('en-IN')} by Safe-Lease`, {
+            align: 'right',
+            lineGap: 4
+        });
+
+        // Finalize the PDF and end the stream
+        doc.end();
+
+        stream.on('finish', () => {
+            resolve();
+        });
+
+        stream.on('error', (err) => {
+            console.error('Error writing PDF stream:', err);
+            reject(err);
+        });
+    });
 };
 
 module.exports = generateAgreementPDF;

@@ -4,6 +4,7 @@ import { useAuth } from '../../hooks/useAuth'; // Ensure this path is correct
 import { toast } from 'react-hot-toast';
 import ChatComponent from '../ChatComponent'; // Ensure this path is correct
 import axiosbase from '../../config/axios-config'; // Ensure this path is correct
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
 
 const LandlordRequests = () => {
     const { user, isAuthenticated, backendToken, loading: authLoading } = useAuth();
@@ -11,11 +12,14 @@ const LandlordRequests = () => {
     const [loadingRequests, setLoadingRequests] = useState(true);
     const [error, setError] = useState(null);
     const [showChatFor, setShowChatFor] = useState(null);
+    const navigate = useNavigate(); // Initialize useNavigate
 
     const API_URL = axiosbase.defaults.baseURL;
 
     const fetchRequests = useCallback(async () => {
-        if (authLoading || !isAuthenticated || !backendToken || user?.role !== 'landlord') {
+        if (authLoading) return; // Wait for auth to complete
+
+        if (!isAuthenticated || !backendToken || user?.role !== 'landlord') {
             setLoadingRequests(false);
             if (!isAuthenticated) {
                 setError("You must be logged in to view requests.");
@@ -24,14 +28,16 @@ const LandlordRequests = () => {
             }
             return;
         }
+
         setLoadingRequests(true);
         try {
-            const response = await axios.get(`${API_URL}/agreements/requests`, {
+            // Updated endpoint to match backend route /agreements/landlord-requests
+            const response = await axios.get(`${API_URL}/agreements/landlord-requests`, {
                 headers: {
                     Authorization: `Bearer ${backendToken}`,
                 },
             });
-            setRequests(response.data?.requests || []);
+            setRequests(response.data?.agreements || []); // Adjust to 'agreements' from backend response
             console.log("Fetched landlord requests:", response.data);
         } catch (err) {
             console.error("Error fetching landlord requests:", err);
@@ -46,89 +52,86 @@ const LandlordRequests = () => {
         fetchRequests();
     }, [fetchRequests]);
 
-    const handleResponse = async (id, status) => {
+    // --- NEW / MODIFIED HANDLERS FOR APPROVE AND NEGOTIATE ---
+
+    // Navigates to the CreateAgreementPage for approval (pre-fills with requested terms)
+    const handleApproveCurrentTerms = (agreement) => {
+        navigate(`/agreements/finalize/${agreement._id}`, {
+            state: {
+                agreementData: {
+                    property: agreement.property._id,
+                    landlord: agreement.landlord._id,
+                    tenant: agreement.tenant._id,
+                    // Pre-fill with the tenant's requested terms for final review
+                    startDate: agreement.requestedTerms.moveInDate.split('T')[0], // Format date for input
+                    rentAmount: agreement.requestedTerms.rent,
+                    deposit: agreement.requestedTerms.deposit,
+                    leaseTerm: agreement.requestedTerms.leaseTerm,
+                    agreementTerms: agreement.agreementTerms, // This is the tenant's initial terms
+                    message: agreement.requestMessage,
+                },
+                isApprovalAction: true, // Flag to indicate this is an approval flow
+                existingAgreementId: agreement._id // Pass the existing agreement ID
+            }
+        });
+    };
+
+    // Navigates to the CreateAgreementPage for negotiation (pre-fills with current state)
+    const handleNegotiateTerms = (agreement) => {
+        // Use the currently displayed terms (which might be final or requested) for pre-filling
+        const currentDisplayedTerms = {
+            rent: agreement.finalRentAmount || agreement.requestedTerms?.rent,
+            deposit: agreement.finalDepositAmount || agreement.requestedTerms?.deposit,
+            moveInDate: agreement.finalStartDate || agreement.requestedTerms?.moveInDate,
+            leaseTerm: agreement.finalLeaseTermMonths || agreement.requestedTerms?.leaseTerm,
+            endDate: agreement.finalEndDate || agreement.requestedTerms?.endDate,
+            agreementTerms: agreement.agreementTerms,
+            message: agreement.requestMessage
+        };
+
+        navigate(`/agreements/finalize/${agreement._id}`, {
+            state: {
+                agreementData: {
+                    property: agreement.property._id,
+                    landlord: agreement.landlord._id,
+                    tenant: agreement.tenant._id,
+                    startDate: currentDisplayedTerms.moveInDate ? new Date(currentDisplayedTerms.moveInDate).toISOString().split('T')[0] : '',
+                    rentAmount: currentDisplayedTerms.rent,
+                    deposit: currentDisplayedTerms.deposit,
+                    leaseTerm: currentDisplayedTerms.leaseTerm,
+                    agreementTerms: currentDisplayedTerms.agreementTerms,
+                    message: currentDisplayedTerms.message,
+                },
+                isNegotiationAction: true, // Flag to indicate this is a negotiation flow
+                existingAgreementId: agreement._id // Pass the existing agreement ID
+            }
+        });
+    };
+
+    const handleRejectRequest = async (id) => {
         if (!isAuthenticated || !backendToken || user?.role !== 'landlord') {
             toast.error("You are not authorized to perform this action.");
             return;
         }
+        if (!window.confirm("Are you sure you want to reject this request? This action cannot be undone.")) {
+            return;
+        }
         try {
+            // Using the existing /agreements/status endpoint for rejection
             await axios.put(
-                `${API_URL}/agreements/respond/${id}`,
-                { status },
+                `${API_URL}/agreements/${id}/status`,
+                { status: 'rejected' },
                 {
                     headers: {
                         Authorization: `Bearer ${backendToken}`,
                     },
                 }
             );
-            toast.success(`Request ${status}ed`);
-            fetchRequests();
+            toast.success("Request rejected successfully!");
+            fetchRequests(); // Re-fetch requests to update UI
         } catch (error) {
-            console.error(`Error updating agreement status to ${status}:`, error);
-            toast.error(error.response?.data?.message || `Failed to update status to ${status}.`);
-        }
-    };
-
-    const handleNegotiate = async (agreementId, currentTerms) => {
-        const newRentStr = prompt(`Enter new monthly rent (current: ₹${currentTerms.finalRentAmount?.toLocaleString() || 'N/A'}):`);
-        const newDepositStr = prompt(`Enter new security deposit (current: ₹${currentTerms.finalDepositAmount?.toLocaleString() || 'N/A'}):`);
-        const newStartDateStr = prompt(`Enter new start date (YYYY-MM-DD) (current: ${currentTerms.finalStartDate ? new Date(currentTerms.finalStartDate).toLocaleDateString() : 'N/A'}):`);
-        const newLeaseTermStr = prompt(`Enter new lease term in months (current: ${currentTerms.finalLeaseTermMonths || 'N/A'} months):`);
-        const newEndDateStr = prompt(`Enter new end date (YYYY-MM-DD) (current: ${currentTerms.finalEndDate ? new Date(currentTerms.finalEndDate).toLocaleDateString() : 'N/A'}):`);
-        const newAgreementTerms = prompt(`Enter new general agreement terms (current: "${currentTerms.agreementTerms || ''}"):`);
-
-        if (newRentStr === null || newDepositStr === null || newStartDateStr === null ||
-            newLeaseTermStr === null || newEndDateStr === null || newAgreementTerms === null) {
-            toast('Negotiation cancelled.', { icon: 'ℹ️' });
-            return;
-        }
-
-        const newRent = parseFloat(newRentStr);
-        const newDeposit = parseFloat(newDepositStr);
-        const newLeaseTerm = parseInt(newLeaseTermStr, 10);
-        const newStartDate = new Date(newStartDateStr);
-        const newEndDate = new Date(newEndDateStr);
-
-        if (isNaN(newRent) || isNaN(newDeposit) || isNaN(newLeaseTerm)) {
-            toast.error("Rent, deposit, and lease term must be numbers.");
-            return;
-        }
-        if (newStartDate.toString() === 'Invalid Date' || newEndDate.toString() === 'Invalid Date') {
-            toast.error("Invalid start or end date provided.");
-            return;
-        }
-        if (newStartDate >= newEndDate) {
-            toast.error("Negotiated End Date must be after Start Date.");
-            return;
-        }
-
-        const negotiationData = {
-            rentAmount: newRent,
-            depositAmount: newDeposit,
-            startDate: newStartDate.toISOString(),
-            endDate: newEndDate.toISOString(),
-            leaseTermMonths: newLeaseTerm,
-            agreementTerms: newAgreementTerms,
-        };
-
-        console.log("Sending negotiation data:", negotiationData);
-
-        try {
-            await axios.put(
-                `${API_URL}/agreements/negotiate/${agreementId}`,
-                negotiationData,
-                {
-                    headers: {
-                        Authorization: `Bearer ${backendToken}`,
-                    },
-                }
-            );
-            toast.success("Negotiation terms sent successfully!");
-            fetchRequests();
-        } catch (error) {
-            console.error("Error sending negotiation terms:", error);
-            const errorMessage = error.response?.data?.message || error.message || "Failed to send negotiation terms.";
-            toast.error(errorMessage);
+            console.error("Error rejecting agreement:", error);
+            toast.error(error.response?.data?.message || "Failed to reject agreement.");
         }
     };
 
@@ -142,7 +145,7 @@ const LandlordRequests = () => {
 
     if (authLoading || loadingRequests) {
         return (
-            <div className="text-center p-8">Loading requests...</div>
+            <div className="text-center p-8 text-gray-700">Loading agreement requests...</div>
         );
     }
 
@@ -168,20 +171,21 @@ const LandlordRequests = () => {
                         propertyLocation = [request.property.address.city, request.property.address.state]
                             .filter(Boolean)
                             .join(', ');
-                    } else if (request.property?.location) {
+                    } else if (request.property?.location) { // Fallback for general location string
                         propertyLocation = request.property.location;
-                    } else if (request.property?.city || request.property?.state) {
+                    } else if (request.property?.city || request.property?.state) { // Fallback if city/state are top-level
                         propertyLocation = [request.property.city, request.property.state]
                             .filter(Boolean)
                             .join(', ');
                     }
 
+                    // Display 'final' terms if available, otherwise 'requested'
                     const displayRent = request.finalRentAmount || request.requestedTerms?.rent;
                     const displayDeposit = request.finalDepositAmount || request.requestedTerms?.deposit;
                     const displayStartDate = request.finalStartDate || request.requestedTerms?.moveInDate;
                     const displayEndDate = request.finalEndDate || request.requestedTerms?.endDate;
                     const displayLeaseTerm = request.finalLeaseTermMonths || request.requestedTerms?.leaseTerm;
-                    const displayAgreementTerms = request.agreementTerms;
+                    const displayAgreementTerms = request.agreementTerms; // This holds the latest terms
 
                     return (
                         <div key={request._id} className="bg-white rounded-lg shadow-lg p-6 flex flex-col justify-between border border-gray-200">
@@ -212,10 +216,10 @@ const LandlordRequests = () => {
                                     <strong>Current Deposit:</strong> ₹{displayDeposit?.toLocaleString() || 'N/A'}
                                 </p>
                                 <p className="text-gray-600 mb-1">
-                                    <strong>Current Start:</strong> {displayStartDate ? new Date(displayStartDate).toLocaleDateString() : 'N/A'}
+                                    <strong>Current Start:</strong> {displayStartDate ? new Date(displayStartDate).toLocaleDateString('en-IN') : 'N/A'}
                                 </p>
                                 <p className="text-gray-600 mb-1">
-                                    <strong>Current End:</strong> {displayEndDate ? new Date(displayEndDate).toLocaleDateString() : 'N/A'}
+                                    <strong>Current End:</strong> {displayEndDate ? new Date(displayEndDate).toLocaleDateString('en-IN') : 'N/A'}
                                 </p>
                                 <p className="text-gray-600 mb-1">
                                     <strong>Current Lease Term:</strong> {displayLeaseTerm} months
@@ -235,9 +239,9 @@ const LandlordRequests = () => {
                                         <h4 className="font-semibold text-gray-800">Tenant's Original Request:</h4>
                                         <p className="text-gray-700">Rent: ₹{request.requestedTerms.rent?.toLocaleString()}</p>
                                         <p className="text-gray-700">Deposit: ₹{request.requestedTerms.deposit?.toLocaleString()}</p>
-                                        <p className="text-gray-700">Move-in Date: {new Date(request.requestedTerms.moveInDate).toLocaleDateString()}</p>
+                                        <p className="text-gray-700">Move-in Date: {new Date(request.requestedTerms.moveInDate).toLocaleDateString('en-IN')}</p>
                                         <p className="text-gray-700">Lease Term: {request.requestedTerms.leaseTerm} months</p>
-                                        <p className="text-gray-700">End Date: {new Date(request.requestedTerms.endDate).toLocaleDateString()}</p>
+                                        <p className="text-gray-700">End Date: {new Date(request.requestedTerms.endDate).toLocaleDateString('en-IN')}</p>
                                     </div>
                                 )}
                             </div>
@@ -246,26 +250,19 @@ const LandlordRequests = () => {
                                 {request.status === 'pending' || request.status === 'negotiating' ? (
                                     <>
                                         <button
-                                            onClick={() => handleResponse(request._id, 'approved')}
+                                            onClick={() => handleApproveCurrentTerms(request)} // Changed to navigate
                                             className="w-full bg-green-500 text-white py-2 rounded-md hover:bg-green-600 transition duration-200 text-sm"
                                         >
                                             Approve Current Terms
                                         </button>
                                         <button
-                                            onClick={() => handleNegotiate(request._id, {
-                                                finalRentAmount: displayRent,
-                                                finalDepositAmount: displayDeposit,
-                                                finalStartDate: displayStartDate,
-                                                finalEndDate: displayEndDate,
-                                                finalLeaseTermMonths: displayLeaseTerm,
-                                                agreementTerms: displayAgreementTerms
-                                            })}
+                                            onClick={() => handleNegotiateTerms(request)} // Changed to navigate
                                             className="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 transition duration-200 text-sm"
                                         >
                                             Negotiate Terms
                                         </button>
                                         <button
-                                            onClick={() => handleResponse(request._id, 'rejected')}
+                                            onClick={() => handleRejectRequest(request._id)}
                                             className="w-full bg-red-500 text-white py-2 rounded-md hover:bg-red-600 transition duration-200 text-sm"
                                         >
                                             Reject Request
