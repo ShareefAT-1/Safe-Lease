@@ -1,10 +1,8 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User-model');
 
-const authMiddleware = async (req, res, next) => { 
+const authMiddleware = async (req, res, next) => {
     const token = req.header('Authorization') && req.header('Authorization').replace('Bearer ', '');
-
-   
 
     if (!token) {
         // console.log('Error: No token, authorization denied.');
@@ -13,21 +11,22 @@ const authMiddleware = async (req, res, next) => {
 
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        // console.log("Decoded token payload:", decoded); 
+        // console.log("Decoded token payload:", decoded);
         // console.log("JWT Secret used for verification:", process.env.JWT_SECRET);
 
-        if (!decoded.userId) { 
+        if (!decoded.userId) {
             // console.log("Error: Decoded token does not contain 'userId' field.");
             return res.status(401).json({ msg: 'Token valid but missing userId payload' });
         }
 
-        req.user = await User.findById(decoded.userId).select('-password'); 
+        // --- Important: Attaching the full user object to req.user ---
+        req.user = await User.findById(decoded.userId).select('-password');
         if (!req.user) {
             // console.log('Error: User not found in database for ID:', decoded.userId);
             return res.status(401).json({ msg: 'User not found in database' });
         }
 
-        req.userId = decoded.userId; 
+        req.userId = decoded.userId; // Also keep req.userId for backward compatibility if needed
         // console.log('Authentication successful for user ID:', req.userId);
         next();
     } catch (err) {
@@ -40,8 +39,8 @@ const authMiddleware = async (req, res, next) => {
         }
         return res.status(401).json({ msg: 'Token is not valid (general error)' });
     } finally {
-
+        // This block is optional and usually not needed unless for specific cleanup
     }
 };
 
-module.exports = authMiddleware; 
+module.exports = authMiddleware;

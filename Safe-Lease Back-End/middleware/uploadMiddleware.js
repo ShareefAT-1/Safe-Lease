@@ -1,47 +1,32 @@
-// Safe-Lease Back-End/middlewares/uploadMiddleware.js
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
+const fs = require ('fs'); // Import fs module to create directories
 
-// Define storage for uploaded files
 const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        // Updated to handle both property images and signatures
-        let uploadPath;
-        if (file.fieldname === 'image') { // Assuming 'image' for property images
-            uploadPath = path.join(__dirname, '../uploads/property-images');
-        } else if (file.fieldname === 'signature') { // Assuming 'signature' for agreement signatures
-            uploadPath = path.join(__dirname, '../uploads/signatures');
-        } else {
-            uploadPath = path.join(__dirname, '../uploads/misc'); // Fallback for other file types
-        }
+    destination: function (req, file, cb) {
+        const uploadDir = 'uploads/'; // Define your upload directory
 
-        fs.mkdirSync(uploadPath, { recursive: true }); // Create directory if it doesn't exist
-        cb(null, uploadPath);
+        // Create the directory if it doesn't exist
+        if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
+        }
+        cb(null, uploadDir);
     },
-    filename: (req, file, cb) => {
-        // Use a unique filename with original extension
-        cb(null, `${file.fieldname}-${Date.now()}${path.extname(file.originalname)}`);
-    }
+    filename: function (req, file, cb) {
+        cb(null, `${Date.now()}-${file.originalname}`);
+    },
 });
 
-// Filter to allow only image files
 const fileFilter = (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (ext === '.jpg' || ext === '.png' || ext === '.jpeg') {
         cb(null, true);
     } else {
-        cb(new Error('Only image files are allowed!'), false);
+        cb(new Error('Only images are allowed'), false);
     }
 };
 
-// Initialize multer upload middleware
-const upload = multer({
-    storage: storage,
-    fileFilter: fileFilter,
-    limits: {
-        fileSize: 1024 * 1024 * 5 // 5MB file size limit
-    }
-});
+const upload = multer({ storage, fileFilter });
 
-// Export the multer instance directly, not inside an object.
-module.exports = upload;
+// --- CRUCIAL CHANGE: Export the 'upload' instance directly, not as an object ---
+module.exports = upload; // Removed curly braces

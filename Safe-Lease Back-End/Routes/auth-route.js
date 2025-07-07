@@ -1,19 +1,19 @@
-const express = require('express'); 
-const router = express.Router(); 
-const { registerUser, loginUser, getUserById } = require('../Controllers/auth-Controller'); 
+const express = require('express');
+const router = express.Router();
+const { registerUser, loginUser, getUserById } = require('../Controllers/auth-Controller');
 
-const authMiddleware = require('../middleware/authMiddleware');  
-const roleMiddleware = require('../middleware/roleMiddleware'); 
+const authMiddleware = require('../middleware/authMiddleware'); 
+const roleMiddleware = require('../middleware/roleMiddleware');
 
 
-router.post('/register', registerUser); 
-router.post('/login', loginUser); 
+router.post('/register', registerUser);
+router.post('/login', loginUser);
 
 router.get('/me', authMiddleware, (req, res) => {
     if (req.user) {
         const userDetails = {
             _id: req.user._id,
-            name: req.user.name, 
+            name: req.user.name,
             email: req.user.email,
             role: req.user.role,
             phone: req.user.phone,
@@ -25,8 +25,7 @@ router.get('/me', authMiddleware, (req, res) => {
     }
 });
 
-
-router.get('/profile/:id', authMiddleware, getUserById); 
+router.get('/profile/:id', authMiddleware, getUserById);
 
 router.get('/admin-dashboard', authMiddleware, roleMiddleware('admin'), (req, res) => {
     res.json({ msg: 'Welcome to the Admin Dashboard', user: req.user });
