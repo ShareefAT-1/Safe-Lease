@@ -182,88 +182,91 @@ const CreateAgreementPage = () => {
         }
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
 
-        if (!validateForm()) {
-            toast.error("Please fill in all required fields correctly.");
-            setSubmitting(false);
-            return;
+const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!validateForm()) {
+        toast.error("Please fill in all required fields correctly.");
+        setSubmitting(false);
+        return;
+    }
+
+    setSubmitting(true);
+
+    if (!isAuthenticated || !backendToken || !user?.id) {
+        toast.error("Authentication required.");
+        setSubmitting(false);
+        return;
+    }
+
+    try {
+        const parsedStartDate = new Date(formData.startDate);
+        const calculatedEndDate = new Date(parsedStartDate);
+        calculatedEndDate.setMonth(parsedStartDate.getMonth() + parseInt(formData.leaseTerm, 10));
+        if (calculatedEndDate.getDate() !== parsedStartDate.getDate()) {
+            calculatedEndDate.setDate(0);
         }
+        const isoEndDate = calculatedEndDate.toISOString();
 
-        setSubmitting(true);
+        const payload = {
+            property: formData.property,
+            landlord: formData.landlord,
+            rentAmount: parseFloat(formData.rentAmount),
+            depositAmount: parseFloat(formData.deposit),
+            startDate: parsedStartDate.toISOString(),
+            endDate: isoEndDate,
+            leaseTermMonths: parseInt(formData.leaseTerm, 10),
+            agreementTerms: formData.agreementTerms,
+            message: formData.message,
+        };
 
-        if (!isAuthenticated || !backendToken || !user?.id) {
-            toast.error("Authentication required.");
-            setSubmitting(false);
-            return;
-        }
-
-        try {
-            const parsedStartDate = new Date(formData.startDate);
-            const calculatedEndDate = new Date(parsedStartDate);
-            calculatedEndDate.setMonth(parsedStartDate.getMonth() + parseInt(formData.leaseTerm, 10));
-            if (calculatedEndDate.getDate() !== parsedStartDate.getDate()) {
-                calculatedEndDate.setDate(0);
-            }
-            const isoEndDate = calculatedEndDate.toISOString();
-
-            const payload = {
-                property: formData.property,
-                landlord: formData.landlord,
-                rentAmount: parseFloat(formData.rentAmount),
-                depositAmount: parseFloat(formData.deposit),
-                startDate: parsedStartDate.toISOString(),
-                endDate: isoEndDate,
-                leaseTermMonths: parseInt(formData.leaseTerm, 10),
-                agreementTerms: formData.agreementTerms,
-                message: formData.message,
-            };
-
-            let response;
-            if (isLandlordAction && agreementId) {
-                if (isApprovalAction) {
-                    const formDataWithSignature = new FormData();
-                    for (const key in payload) {
-                        formDataWithSignature.append(key, payload[key]);
-                    }
-                    if (signature) {
-                        formDataWithSignature.append('signature', signature);
-                    }
-
-                    response = await axiosbase.put(`/agreements/${agreementId}/approve`, formDataWithSignature, {
-                        headers: {
-                            'Authorization': `Bearer ${backendToken}`,
-                            'Content-Type': 'multipart/form-data'
-                        },
-                    });
-                } else if (isNegotiationAction) {
-                    response = await axiosbase.put(`/agreements/${agreementId}/negotiate`, payload, {
-                        headers: { 'Authorization': `Bearer ${backendToken}` }
-                    });
-                } else {
-                    throw new Error("Invalid landlord action (approval/negotiation status missing).");
+        let response;
+        if (isLandlordAction && agreementId) {
+            if (isApprovalAction) {
+                const formDataWithSignature = new FormData();
+                for (const key in payload) {
+                    formDataWithSignature.append(key, payload[key]);
                 }
-            } else {
-                if (user.role !== 'tenant') {
-                    toast.error("Only tenants can initiate new agreement requests.");
-                    setSubmitting(false);
-                    return;
+                if (signature) {
+                    formDataWithSignature.append('signature', signature);
                 }
-                response = await axiosbase.post("/agreements/request", { ...payload, tenant: user.id }, {
+                // *** THE KEY FIX: Append the 'status' field for approval ***
+                formDataWithSignature.append('status', 'approved');
+
+                response = await axiosbase.put(`/agreements/respond/${agreementId}`, formDataWithSignature, {
+                    headers: {
+                        'Authorization': `Bearer ${backendToken}`,
+                        'Content-Type': 'multipart/form-data'
+                    },
+                });
+            } else if (isNegotiationAction) {
+                response = await axiosbase.put(`/agreements/negotiate/${agreementId}`, payload, {
                     headers: { 'Authorization': `Bearer ${backendToken}` }
                 });
+            } else {
+                throw new Error("Invalid landlord action (approval/negotiation status missing).");
             }
-
-            toast.success(response.data.message || 'Agreement action successful!');
-            navigate('/dashboard');
-        } catch (error) {
-            const errorMessage = error.response?.data?.message || error.message || 'Failed to process agreement. Please try again.';
-            toast.error(errorMessage);
-        } finally {
-            setSubmitting(false);
+        } else {
+            if (user.role !== 'tenant') {
+                toast.error("Only tenants can initiate new agreement requests.");
+                setSubmitting(false);
+                return;
+            }
+            response = await axiosbase.post("/agreements/request", { ...payload, tenant: user.id }, {
+                headers: { 'Authorization': `Bearer ${backendToken}` }
+            });
         }
-    };
+
+        toast.success(response.data.message || 'Agreement action successful!');
+        navigate('/dashboard');
+    } catch (error) {
+        const errorMessage = error.response?.data?.message || error.message || 'Failed to process agreement. Please try again.';
+        toast.error(errorMessage);
+    } finally {
+        setSubmitting(false);
+    }
+};
 
     if (authLoading || fetchingDetails) {
         return (

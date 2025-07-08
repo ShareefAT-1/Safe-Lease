@@ -295,8 +295,7 @@ const LandlordRequests = () => {
                                 </p>
 
                                 {request.status === "negotiating" &&
-                                    request.lastNegotiatedBy?.toString() !==
-                                        user._id.toString() && (
+                                    request.lastNegotiatedBy?.toString() !== user?._id?.toString() && (
                                         <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded">
                                             <h4 className="font-semibold text-blue-800">
                                                 Tenant's Last Message/Counter:
