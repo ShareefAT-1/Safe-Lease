@@ -1,5 +1,3 @@
-// frontend/src/App.jsx
-
 import React from "react";
 import { Route, Routes } from "react-router-dom";
 
@@ -14,14 +12,8 @@ import AllProducts from "./pages/AllProducts";
 import SingleProperty from "./pages/SingleProperty";
 
 import PropertyForm from "./components/PropertyForm";
-
-// Import the LandlordRequests component that you've been working on
 import LandlordRequests from "./components/Agreement/LandlordRequests";
 import CreateAgreementPage from "./pages/CreateAgreementPage";
-
-// You can likely remove these test components once you're confident
-// import TestLandlordRequests from "./pages/TestLandlordRequests";
-// import TestRequestAgreement from "./pages/TestRequestAgreement";
 
 import LandlordChatsPage from "./pages/LandlordChatsPage";
 
@@ -42,22 +34,15 @@ function App() {
         <Route path="/property/:id" element={<SingleProperty />} />
         <Route path="/create-property" element={<PropertyForm />} />
 
-        {/* Tenant creates a NEW agreement request for a specific property/landlord */}
-        {/* --- CRUCIAL CHANGE: Path updated to /create-agreement/ --- */}
         <Route path="/create-agreement/:propertyId/:landlordId" element={<CreateAgreementPage />} />
 
-        {/* Landlord views all their requests */}
         <Route path="/landlord/requests" element={<LandlordRequests />} />
 
-        {/* Landlord finalizes/negotiates an EXISTING agreement */}
         <Route path="/agreements/finalize/:id" element={<CreateAgreementPage />} />
 
 
         <Route path="/landlord-dashboard" element={<LandlordDashboard />} />
         <Route path="/tenant-dashboard" element={<TenantDashboard />} />
-
-        {/* You can remove these test routes if they are no longer needed */}
-        {/* <Route path="/test/request-agreement" element={<TestRequestAgreement />} /> */}
 
         <Route path="/landlord-chats" element={<LandlordChatsPage />} />
       </Routes>

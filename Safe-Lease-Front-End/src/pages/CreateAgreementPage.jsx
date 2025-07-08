@@ -1,25 +1,20 @@
-// frontend/src/pages/CreateAgreementPage.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import axiosbase from '../config/axios-config';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../hooks/useAuth';
 
-// Import a simple signature pad component or library if you have one.
-// For this example, we'll use a basic text input for signature path/data.
-// In a real app, you'd integrate a library like 'react-signature-canvas' or similar.
-
 const CreateAgreementPage = () => {
     const navigate = useNavigate();
     const { id: agreementId } = useParams(); // For existing agreement (landlord flow)
-    const { propertyId, landlordId: routeLandlordId } = useParams(); // For new tenant request flow
+    const { propertyId: paramPropertyId, landlordId: paramLandlordId } = useParams(); // For new tenant request flow (from URL)
     const location = useLocation(); // To access state passed via navigate
 
     const { user, isAuthenticated, backendToken, loading: authLoading } = useAuth();
 
     const [formData, setFormData] = useState({
-        property: propertyId || '',
-        landlord: routeLandlordId || '',
+        property: paramPropertyId || '',
+        landlord: paramLandlordId || '',
         startDate: '',
         rentAmount: '',
         agreementTerms: '',
@@ -27,7 +22,7 @@ const CreateAgreementPage = () => {
         leaseTerm: 12,
         deposit: ''
     });
-    const [signature, setSignature] = useState(null); // State to hold signature data (e.g., File object)
+    const [signature, setSignature] = useState(null);
     const [submitting, setSubmitting] = useState(false);
     const [formErrors, setFormErrors] = useState({});
 
@@ -35,18 +30,34 @@ const CreateAgreementPage = () => {
     const [landlordDetails, setLandlordDetails] = useState(null);
     const [fetchingDetails, setFetchingDetails] = useState(true);
 
-    // Flags to determine the action context
-    const isLandlordAction = !!agreementId; // True if agreementId exists in URL params
+    const isLandlordAction = !!agreementId;
     const isApprovalAction = location.state?.isApprovalAction;
     const isNegotiationAction = location.state?.isNegotiationAction;
 
     useEffect(() => {
-        if (authLoading) return;
+        console.log("--- useEffect: Initializing fetch process ---");
+        console.log("authLoading:", authLoading);
+        console.log("isAuthenticated:", isAuthenticated);
+        console.log("user:", user);
+        console.log("agreementId (from params):", agreementId);
+        console.log("paramPropertyId (from params):", paramPropertyId);
+        console.log("paramLandlordId (from params):", paramLandlordId);
+        console.log("location.state:", location.state);
+        console.log("isLandlordAction:", isLandlordAction);
+        console.log("isApprovalAction:", isApprovalAction);
+        console.log("isNegotiationAction:", isNegotiationAction);
 
-        // Redirect if not authenticated or not the correct role for the action
+
+        if (authLoading) {
+            console.log("authLoading is true, returning early from useEffect.");
+            return;
+        }
+
+        // Step 1: Handle authentication and role-based redirects
         if (!isAuthenticated || !backendToken || !user?.id) {
+            console.log("User not authenticated or missing token/ID.");
             setFetchingDetails(false);
-            if (!isLandlordAction) { // Only show error for tenant's initial creation if not logged in
+            if (!isLandlordAction) { // Only redirect if it's not a landlord action
                 toast.error("You must be logged in to access this page.");
                 navigate('/login');
             }
@@ -54,43 +65,86 @@ const CreateAgreementPage = () => {
         }
 
         if (!isLandlordAction && user.role !== 'tenant') {
+            console.log("User is not a tenant for a new request.");
             toast.error("Only tenants can initiate agreement requests.");
             navigate('/');
             return;
         }
         if (isLandlordAction && user.role !== 'landlord') {
+            console.log("User is not a landlord for an existing agreement action.");
             toast.error("Only landlords can finalize agreement requests.");
             navigate('/');
             return;
         }
 
-        // Pre-fill form if it's a landlord action from LandlordRequests
+        // Step 2: Determine actual IDs for fetching and pre-fill form data
+        let currentPropertyId;
+        let currentLandlordId;
+        let initialFormData = { ...formData }; // Use a copy to update within this effect
+
         if (isLandlordAction && location.state?.agreementData) {
+            console.log("Detected landlord action with agreementData in state.");
+            // Landlord flow: IDs and data come from location.state
             const { agreementData } = location.state;
-            setFormData({
-                property: agreementData.property,
-                landlord: agreementData.landlord,
-                startDate: agreementData.startDate, // Already formatted 'YYYY-MM-DD' from LandlordRequests
+            console.log("agreementData from state:", agreementData); // Inspect this object directly
+
+            // --- CRITICAL CHANGE HERE ---
+            // Access the _id property of property and landlord if they are objects
+            currentPropertyId = agreementData.property?._id || agreementData.property;
+            currentLandlordId = agreementData.landlord?._id || agreementData.landlord;
+
+            initialFormData = {
+                property: currentPropertyId, // Use the extracted ID
+                landlord: currentLandlordId, // Use the extracted ID
+                startDate: agreementData.startDate,
                 rentAmount: agreementData.rentAmount,
                 agreementTerms: agreementData.agreementTerms,
                 message: agreementData.message,
                 leaseTerm: agreementData.leaseTerm,
                 deposit: agreementData.deposit,
-            });
-        } else if (!isLandlordAction && (!propertyId || !routeLandlordId)) {
-            // For new tenant creation, ensure IDs are in URL
-            toast.error("Property ID or Landlord ID is missing in the URL. Cannot create agreement request.");
-            navigate('/properties');
+            };
+            // --- END CRITICAL CHANGE ---
+
+        } else {
+            console.log("Detected tenant action or landlord action without agreementData in state (checking URL params).");
+            // Tenant flow: IDs come from URL params
+            currentPropertyId = paramPropertyId;
+            currentLandlordId = paramLandlordId;
+
+            // For tenant creation, if IDs are missing from URL, redirect
+            if (!currentPropertyId || !currentLandlordId) {
+                console.log("Missing propertyId or landlordId from URL params for tenant flow. Redirecting.");
+                toast.error("Property ID or Landlord ID is missing in the URL. Cannot create agreement request.");
+                navigate('/properties');
+                return; // Early exit if IDs are genuinely missing
+            }
+        }
+
+        // Update formData state only if it's different to prevent unnecessary re-renders
+        if (
+            initialFormData.property !== formData.property ||
+            initialFormData.landlord !== formData.landlord ||
+            initialFormData.startDate !== formData.startDate ||
+            initialFormData.rentAmount !== formData.rentAmount ||
+            initialFormData.agreementTerms !== formData.agreementTerms ||
+            initialFormData.message !== formData.message ||
+            initialFormData.leaseTerm !== formData.leaseTerm ||
+            initialFormData.deposit !== formData.deposit
+        ) {
+            console.log("Updating formData state with initialFormData.");
+            setFormData(initialFormData);
+        } else {
+            console.log("formData is already up-to-date.");
+        }
+
+
+        // Step 3: Fetch details only if valid IDs are available
+        if (!currentPropertyId || !currentLandlordId) {
+            console.log("currentPropertyId or currentLandlordId is missing after determination. Not fetching details.");
+            setFetchingDetails(false);
             return;
         }
-
-        const currentPropertyId = formData.property || propertyId;
-        const currentLandlordId = formData.landlord || routeLandlordId;
-
-        if (!currentPropertyId || !currentLandlordId) {
-             setFetchingDetails(false);
-             return;
-        }
+        console.log("Attempting to fetch details for Property ID:", currentPropertyId, "and Landlord ID:", currentLandlordId);
 
         const fetchDetails = async () => {
             setFetchingDetails(true);
@@ -99,11 +153,13 @@ const CreateAgreementPage = () => {
                     headers: { Authorization: `Bearer ${backendToken}` }
                 });
                 setPropertyDetails(propertyRes.data);
+                console.log("Property details fetched:", propertyRes.data);
 
                 const landlordRes = await axiosbase.get(`/auth/profile/${currentLandlordId}`, {
                     headers: { Authorization: `Bearer ${backendToken}` }
                 });
                 setLandlordDetails(landlordRes.data);
+                console.log("Landlord details fetched:", landlordRes.data);
 
             } catch (error) {
                 console.error("Error fetching details:", error);
@@ -113,13 +169,17 @@ const CreateAgreementPage = () => {
                 setLandlordDetails(null);
             } finally {
                 setFetchingDetails(false);
+                console.log("Finished fetching details.");
             }
         };
+
         fetchDetails();
+
     }, [
-        propertyId, routeLandlordId, navigate, authLoading, isAuthenticated,
+        paramPropertyId, paramLandlordId, navigate, authLoading, isAuthenticated,
         backendToken, user, location.state, agreementId, isLandlordAction,
-        isApprovalAction, isNegotiationAction, formData.property, formData.landlord
+        formData.property, formData.landlord, formData.startDate, formData.rentAmount,
+        formData.agreementTerms, formData.message, formData.leaseTerm, formData.deposit
     ]);
 
 
@@ -134,6 +194,7 @@ const CreateAgreementPage = () => {
         if (isApprovalAction && !signature) errors.signature = "Landlord signature is required for approval.";
 
         setFormErrors(errors);
+        console.log("Form validation errors:", errors);
         return Object.keys(errors).length === 0;
     };
 
@@ -153,8 +214,6 @@ const CreateAgreementPage = () => {
     };
 
     const handleSignatureChange = (e) => {
-        // For a real signature pad, you'd get base64 or a Blob.
-        // For this example, let's assume it's a file input.
         if (e.target.files && e.target.files[0]) {
             setSignature(e.target.files[0]);
             if (formErrors.signature) {
@@ -169,9 +228,11 @@ const CreateAgreementPage = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        console.log("--- handleSubmit called ---");
 
         if (!validateForm()) {
             toast.error("Please fill in all required fields correctly.");
+            setSubmitting(false);
             return;
         }
 
@@ -182,18 +243,18 @@ const CreateAgreementPage = () => {
             setSubmitting(false);
             return;
         }
+        console.log("Authentication confirmed. Proceeding with submission.");
+
 
         try {
             const parsedStartDate = new Date(formData.startDate);
             const calculatedEndDate = new Date(parsedStartDate);
             calculatedEndDate.setMonth(parsedStartDate.getMonth() + parseInt(formData.leaseTerm, 10));
-            // Adjust end date if day of month rolls over (e.g., Jan 31 + 1 month = Feb 28/29)
             if (calculatedEndDate.getDate() !== parsedStartDate.getDate()) {
                 calculatedEndDate.setDate(0);
             }
             const isoEndDate = calculatedEndDate.toISOString();
 
-            // Prepare common data for both new request and update/negotiate
             const payload = {
                 property: formData.property,
                 landlord: formData.landlord,
@@ -206,34 +267,40 @@ const CreateAgreementPage = () => {
                 message: formData.message,
             };
 
+            console.log("Payload prepared:", payload);
+
             let response;
             if (isLandlordAction && agreementId) {
-                // Landlord is approving or negotiating an existing agreement
                 if (isApprovalAction) {
-                    // For approval, create FormData to send file (signature)
+                    console.log("Attempting landlord APPROVE action.");
                     const formDataWithSignature = new FormData();
                     for (const key in payload) {
                         formDataWithSignature.append(key, payload[key]);
                     }
                     if (signature) {
                         formDataWithSignature.append('signature', signature);
+                        console.log("Signature appended to FormData.");
+                    } else {
+                        console.warn("No signature file selected for approval.");
                     }
 
                     response = await axiosbase.put(`/agreements/${agreementId}/approve`, formDataWithSignature, {
                         headers: {
                             'Authorization': `Bearer ${backendToken}`,
-                            'Content-Type': 'multipart/form-data' // Important for file uploads
+                            'Content-Type': 'multipart/form-data'
                         },
                     });
                 } else if (isNegotiationAction) {
+                    console.log("Attempting landlord NEGOTIATE action.");
                     response = await axiosbase.put(`/agreements/${agreementId}/negotiate`, payload, {
                         headers: { 'Authorization': `Bearer ${backendToken}` }
                     });
                 } else {
+                    console.error("Invalid landlord action: approval/negotiation status missing in state.");
                     throw new Error("Invalid landlord action (approval/negotiation status missing).");
                 }
             } else {
-                // Tenant is creating a new agreement request
+                console.log("Attempting tenant NEW AGREEMENT request.");
                 if (user.role !== 'tenant') {
                     toast.error("Only tenants can initiate new agreement requests.");
                     setSubmitting(false);
@@ -244,18 +311,21 @@ const CreateAgreementPage = () => {
                 });
             }
 
+            console.log("API response received:", response.data);
             toast.success(response.data.message || 'Agreement action successful!');
-            navigate('/dashboard'); // Navigate to a relevant page after success
+            navigate('/dashboard');
         } catch (error) {
             console.error('Error in agreement action:', error);
             const errorMessage = error.response?.data?.message || error.message || 'Failed to process agreement. Please try again.';
             toast.error(errorMessage);
         } finally {
             setSubmitting(false);
+            console.log("--- handleSubmit finished ---");
         }
     };
 
     if (authLoading || fetchingDetails) {
+        console.log("Rendering loading state. authLoading:", authLoading, "fetchingDetails:", fetchingDetails);
         return (
             <div className="flex justify-center items-center h-screen bg-gray-100">
                 <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
@@ -265,6 +335,8 @@ const CreateAgreementPage = () => {
     }
 
     const isFormDisabled = (!propertyDetails || !landlordDetails || !isAuthenticated || !user?.id || (isLandlordAction && user.role !== 'landlord') || (!isLandlordAction && user.role !== 'tenant'));
+    console.log("isFormDisabled:", isFormDisabled);
+
 
     let pageTitle = "Request Lease Agreement";
     let submitButtonText = "Send Agreement Request";
@@ -297,7 +369,7 @@ const CreateAgreementPage = () => {
 
                 {propertyDetails && (
                     <div className="mb-4 p-3 bg-blue-50 rounded-md border border-blue-200">
-                        <h2 className="text-lg font-semibold text-blue-700">Property: {propertyDetails.title || 'N/A'}</h2>
+                        <h2 className="text-lg font-semibold text-blue-700">Property: {propertyDetails.title || propertyDetails.propertyName || 'N/A'}</h2>
                         <p className="text-sm text-gray-600">Address: {propertyDetails.address?.street}, {propertyDetails.address?.city}</p>
                         <p className="text-sm text-gray-600">Listed Rent: ₹{propertyDetails.rent?.toLocaleString() || 'N/A'}</p>
                     </div>
@@ -412,7 +484,7 @@ const CreateAgreementPage = () => {
                             accept="image/*"
                             onChange={handleSignatureChange}
                             className={`shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 ${formErrors.signature ? 'border-red-500' : 'border-gray-300'}`}
-                            required={isApprovalAction} // Signature is required only for approval
+                            required={isApprovalAction}
                             disabled={isFormDisabled || submitting}
                         />
                         {formErrors.signature && <p className="text-red-500 text-xs italic mt-1">{formErrors.signature}</p>}
