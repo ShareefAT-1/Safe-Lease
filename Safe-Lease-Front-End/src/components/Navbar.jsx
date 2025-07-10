@@ -1,8 +1,11 @@
+// frontend/src/components/Navbar.jsx
+
 import React from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import SearchBox from "./SearchBox";
 import toast from "react-hot-toast";
-import { useAuth } from "../hooks/useAuth";
+import { useAuth } from "../hooks/useAuth"; 
+// Removed: import icon from "../assets/icon.svg"
 
 export default function Navbar() {
   const { isAuthenticated, user, logout } = useAuth();
@@ -16,7 +19,10 @@ export default function Navbar() {
 
   return (
     <nav className="flex justify-between items-center px-6 py-4 bg-white shadow-md text-gray-700 z-50 sticky top-0 w-full">
-      <div className="text-2xl font-bold text-blue-600">SafeLease</div>
+      {/* REVERTED: Using text "SafeLease" as logo with styling */}
+      <NavLink to="/" className="text-2xl font-extrabold text-blue-700 hover:text-blue-800 transition duration-300">
+        SafeLease
+      </NavLink>
 
       <ul className="flex items-center space-x-6">
         <li>
@@ -133,8 +139,8 @@ export default function Navbar() {
             )}
             {user?.role === 'tenant' && (
               <li>
-                <NavLink to="/test/request-agreement" className="hover:text-blue-600 transition duration-300">
-                  Request Form
+                <NavLink to="/tenant/my-requests" className="hover:text-blue-600 transition duration-300">
+                  My Requests
                 </NavLink>
               </li>
             )}

@@ -1,11 +1,9 @@
-// backend/Controllers/agreement-Controller.js
-
 const Agreement = require('../models/Agreement-model');
 const User = require('../models/User-model');
 const Property = require('../models/Property-model');
 const generateAgreementPDF = require('../utils/generatePDF');
 const path = require('path');
-const fs = require('fs'); // Added fs for potential file cleanup
+const fs = require('fs');
 const mongoose = require('mongoose');
 
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
@@ -23,10 +21,9 @@ exports.createAgreement = async (req, res) => {
             agreementTerms,
         } = req.body;
         const landlordId = req.user._id;
-        const signatureImage = req.file; // This is req.file from multer
+        const signatureImage = req.file;
 
         if (!property || !tenant || !rentAmount || !depositAmount || !startDate || !endDate || !leaseTermMonths || !agreementTerms || !signatureImage) {
-            // If signatureImage is missing, it means the file wasn't uploaded or multer failed
             return res.status(400).json({ message: 'Missing required fields or signature image.' });
         }
 
@@ -62,12 +59,11 @@ exports.createAgreement = async (req, res) => {
             agreementTerms,
             landlordSigned: true,
             signedDate: new Date(),
-            landlordSignaturePath: signatureImage.path, // Store the path from multer
+            landlordSignaturePath: signatureImage.path,
         });
 
         const agreementSaveResult = await newAgreement.save();
 
-        // Generate PDF
         const agreementDataForPdf = {
             agreementId: agreementSaveResult._id.toString(),
             propertyDetails: existingProperty.toObject(),
@@ -79,7 +75,7 @@ exports.createAgreement = async (req, res) => {
             endDate: agreementSaveResult.finalEndDate.toLocaleDateString('en-IN'),
             leaseTermMonths: agreementSaveResult.finalLeaseTermMonths,
             agreementTerms: agreementSaveResult.agreementTerms,
-            landlordSignaturePath: signatureImage.path, // Use the path from multer
+            landlordSignaturePath: signatureImage.path,
             signedDate: agreementSaveResult.signedDate.toLocaleDateString('en-IN'),
         };
 
@@ -99,7 +95,6 @@ exports.createAgreement = async (req, res) => {
 
     } catch (error) {
         console.error('Error creating agreement:', error);
-        // If an error occurs during processing, delete the uploaded file to prevent orphans
         if (req.file && fs.existsSync(req.file.path)) {
             fs.unlinkSync(req.file.path);
         }
@@ -185,10 +180,9 @@ exports.requestAgreement = async (req, res) => {
 exports.updateAgreementStatus = async (req, res) => {
     try {
         const { id } = req.params;
-        // req.body now contains text fields parsed by multer
         const { status, rentAmount, depositAmount, startDate, endDate, leaseTermMonths, agreementTerms, message } = req.body;
         const landlordId = req.user._id;
-        const signatureImage = req.file; // Multer makes the file available here
+        const signatureImage = req.file;
 
         if (!isValidObjectId(id)) {
             return res.status(400).json({ message: 'Invalid agreement ID format.' });
@@ -197,12 +191,15 @@ exports.updateAgreementStatus = async (req, res) => {
             return res.status(400).json({ message: 'Invalid status provided.' });
         }
 
-        const agreement = await Agreement.findById(id);
+        const agreement = await Agreement.findById(id)
+            .populate('landlord', 'name email username')
+            .populate('tenant', 'name email username')
+            .populate('property');
 
         if (!agreement) {
             return res.status(404).json({ message: 'Agreement not found.' });
         }
-        if (agreement.landlord.toString() !== landlordId.toString()) {
+        if (agreement.landlord._id.toString() !== landlordId.toString()) {
             return res.status(403).json({ message: 'Forbidden: You are not authorized to update this agreement.' });
         }
 
@@ -213,10 +210,6 @@ exports.updateAgreementStatus = async (req, res) => {
         agreement.status = status;
 
         if (status === 'approved') {
-            // Validate and update terms with incoming payload if they are present
-            // This is crucial if the landlord is approving *after* a negotiation,
-            // or if the initial request needs to become final terms upon approval.
-            // If the frontend is sending all formData fields, use them.
             if (!rentAmount || !depositAmount || !startDate || !endDate || !leaseTermMonths || !agreementTerms) {
                 return res.status(400).json({ message: "Missing required agreement terms for approval." });
             }
@@ -234,20 +227,40 @@ exports.updateAgreementStatus = async (req, res) => {
             agreement.finalLeaseTermMonths = parseInt(leaseTermMonths, 10);
             agreement.finalEndDate = calculatedEndDate;
             agreement.agreementTerms = agreementTerms;
-            agreement.requestMessage = message; // Update message if provided
+            agreement.requestMessage = message;
 
             agreement.landlordSigned = true;
             agreement.signedDate = new Date();
 
-            // *** CRITICAL FIX HERE: Handle signature image for approval ***
             if (signatureImage) {
-                // Assuming multer saves the file and req.file.path contains the full path
-                agreement.landlordSignaturePath = signatureImage.path;
-                // You might also want to re-generate the PDF here with the signature
-                // For now, we'll just save the path.
+                agreement.landlordSignaturePath = `/uploads/signatures/${signatureImage.filename}`;
             } else {
-                // If approval requires a signature but none was provided, return an error
                 return res.status(400).json({ message: 'Signature image is required for approval.' });
+            }
+
+            try {
+                const pdfData = {
+                    agreementId: agreement._id.toString(),
+                    propertyDetails: agreement.property.toObject(),
+                    landlordDetails: agreement.landlord.toObject(),
+                    tenantDetails: agreement.tenant.toObject(),
+                    rentAmount: agreement.finalRentAmount,
+                    depositAmount: agreement.finalDepositAmount,
+                    startDate: agreement.finalStartDate.toLocaleDateString('en-IN'),
+                    endDate: agreement.finalEndDate.toLocaleDateString('en-IN'),
+                    leaseTermMonths: agreement.finalLeaseTermMonths,
+                    agreementTerms: agreement.agreementTerms,
+                    landlordSignaturePath: agreement.landlordSignaturePath,
+                    signedDate: agreement.signedDate.toLocaleDateString('en-IN'),
+                };
+
+                const pdfRelativePath = await generateAgreementPDF(pdfData);
+
+                agreement.pdfPath = pdfRelativePath;
+                console.log(`PDF generated and path saved: ${pdfRelativePath}`);
+
+            } catch (pdfError) {
+                console.error('Error generating PDF during approval:', pdfError);
             }
         }
 
@@ -256,7 +269,6 @@ exports.updateAgreementStatus = async (req, res) => {
         res.status(200).json({ message: `Agreement status updated to ${status}.`, agreement });
     } catch (error) {
         console.error('Error updating agreement status:', error);
-        // If an error occurs during processing, delete the uploaded file to prevent orphaned files
         if (req.file && fs.existsSync(req.file.path)) {
             fs.unlinkSync(req.file.path);
         }
@@ -271,7 +283,7 @@ exports.updateAgreementStatus = async (req, res) => {
 exports.negotiateAgreement = async (req, res) => {
     try {
         const { id } = req.params;
-        const { rentAmount, depositAmount, startDate, endDate, leaseTermMonths, agreementTerms, message } = req.body; // Added message here
+        const { rentAmount, depositAmount, startDate, endDate, leaseTermMonths, agreementTerms, message } = req.body;
         const landlordId = req.user._id;
 
         if (!isValidObjectId(id)) {
@@ -313,7 +325,7 @@ exports.negotiateAgreement = async (req, res) => {
         agreement.agreementTerms = agreementTerms;
         agreement.status = 'negotiating';
         agreement.lastNegotiatedBy = landlordId;
-        agreement.requestMessage = message; // Update message here for negotiation
+        agreement.requestMessage = message;
 
         await agreement.save();
 
@@ -346,6 +358,26 @@ exports.getRequestsForLandlord = async (req, res) => {
     } catch (error) {
         console.error("Error fetching agreement requests for landlord:", error);
         res.status(500).json({ message: "Server error fetching agreement requests.", error: error.message });
+    }
+};
+
+exports.getRequestsForTenant = async (req, res) => {
+    try {
+        const tenantId = req.user._id;
+
+        const requests = await Agreement.find({
+            tenant: tenantId,
+            status: { $in: ['pending', 'negotiating', 'approved', 'rejected'] }
+        })
+        .populate('landlord', 'name email username profilePic')
+        .populate('property', 'title propertyName address city state location imageUrl image')
+        .sort({ createdAt: -1 });
+
+        res.status(200).json({ requests });
+
+    } catch (error) {
+        console.error("Error fetching agreement requests for tenant:", error);
+        res.status(500).json({ message: "Server error fetching tenant requests.", error: error.message });
     }
 };
 

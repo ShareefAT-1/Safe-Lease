@@ -1,3 +1,5 @@
+// frontend/src/App.jsx
+
 import React from "react";
 import { Route, Routes } from "react-router-dom";
 
@@ -14,6 +16,7 @@ import SingleProperty from "./pages/SingleProperty";
 import PropertyForm from "./components/PropertyForm";
 import LandlordRequests from "./components/Agreement/LandlordRequests";
 import CreateAgreementPage from "./pages/CreateAgreementPage";
+import TenantRequests from "./components/TenantRequests";
 
 import LandlordChatsPage from "./pages/LandlordChatsPage";
 
@@ -39,6 +42,11 @@ function App() {
         <Route path="/landlord/requests" element={<LandlordRequests />} />
 
         <Route path="/agreements/finalize/:id" element={<CreateAgreementPage />} />
+
+        {/* NEW ROUTE FOR TENANT REQUESTS */}
+        <Route path="/tenant/my-requests" element={<TenantRequests />} />
+        {/* NEW ROUTE for single agreement view, useful for both roles */}
+        <Route path="/agreement/:id" element={<SingleProperty />} /> {/* Re-using SingleProperty for now, or create a dedicated SingleAgreementView */}
 
 
         <Route path="/landlord-dashboard" element={<LandlordDashboard />} />

@@ -64,6 +64,7 @@ const getAllProperties = async (req, res) => {
 
 /////////////// Get property by ID /////////////////
 const getPropertyById = async (req, res) => {
+    console.log('Attempting to fetch property with ID:', req.params.id);
     try {
         const property = await Property.findById(req.params.id).populate('owner', 'username email');
         if (!property) return res.status(404).json({ msg: 'Property not found' });
