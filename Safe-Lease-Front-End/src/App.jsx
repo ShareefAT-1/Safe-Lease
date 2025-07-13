@@ -23,6 +23,8 @@ import LandlordChatsPage from "./pages/LandlordChatsPage";
 import LandlordDashboard from "./pages/LandlordDashboard";
 import TenantDashboard from "./pages/TenantDashboard";
 
+// NEW IMPORT: Import your dedicated SingleAgreementView component
+import SingleAgreementView from "./pages/SingleAgreementView"; // Assuming you'll place it in the 'pages' folder
 
 function App() {
   return (
@@ -32,7 +34,8 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/about" element={<About />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+        {/* --- FIX FOR DUPLICATE ATTRIBUTE ERROR --- */}
+        <Route path="/register" element={<Register />} /> 
         <Route path="/properties" element={<AllProducts />} />
         <Route path="/property/:id" element={<SingleProperty />} />
         <Route path="/create-property" element={<PropertyForm />} />
@@ -45,9 +48,9 @@ function App() {
 
         {/* NEW ROUTE FOR TENANT REQUESTS */}
         <Route path="/tenant/my-requests" element={<TenantRequests />} />
-        {/* NEW ROUTE for single agreement view, useful for both roles */}
-        <Route path="/agreement/:id" element={<SingleProperty />} /> {/* Re-using SingleProperty for now, or create a dedicated SingleAgreementView */}
-
+        
+        {/* --- Use SingleAgreementView for /agreement/:id --- */}
+        <Route path="/agreement/:id" element={<SingleAgreementView />} /> 
 
         <Route path="/landlord-dashboard" element={<LandlordDashboard />} />
         <Route path="/tenant-dashboard" element={<TenantDashboard />} />

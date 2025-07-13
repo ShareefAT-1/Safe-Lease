@@ -12,8 +12,7 @@ const {
 const authMiddleware = require('../middleware/authMiddleware');
 const roleMiddleware = require('../middleware/roleMiddleware');
 
-// --- CRUCIAL CHANGE: Import 'upload' directly, matching uploadMiddleware.js export ---
-const upload = require('../middleware/uploadMiddleware.js'); // Note: Added .js extension for clarity
+const upload = require('../middleware/uploadMiddleware.js');
 
 router.post('/create', authMiddleware, roleMiddleware('landlord'), upload.single('image'), (req, res, next) => {
     console.log("Request received:", req.body);

@@ -24,7 +24,7 @@ const LandlordChatsPage = () => {
         }
         setLoadingConversations(true);
         try {
-            const response = await axios.get(`${API_URL}/agreements/landlord-requests`, {
+            const response = await axios.get(`${API_URL}/api/agreements/landlord-requests`, {
                 headers: { Authorization: `Bearer ${backendToken}` }
             });
 

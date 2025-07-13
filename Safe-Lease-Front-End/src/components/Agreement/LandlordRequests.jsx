@@ -33,7 +33,7 @@ const LandlordRequests = () => {
 
         setLoadingRequests(true);
         try {
-            const response = await axiosbase.get("/agreements/landlord-requests", {
+            const response = await axiosbase.get("/api/agreements/landlord-requests", {
                 headers: {
                     Authorization: `Bearer ${backendToken}`,
                 },

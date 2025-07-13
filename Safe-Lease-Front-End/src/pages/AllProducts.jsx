@@ -110,7 +110,7 @@ const AllProducts = () => {
   const fetchProducts = useCallback(async () => {
     try {
       setLoading(true);
-      const { data } = await axiosbase.get("/properties");
+      const { data } = await axiosbase.get("/api/properties");
       setProducts(data);
       setError(null);
     } catch (err) {

@@ -203,7 +203,7 @@ const handleSubmit = async (e) => {
     try {
         const parsedStartDate = new Date(formData.startDate);
         const calculatedEndDate = new Date(parsedStartDate);
-        calculatedEndDate.setMonth(parsedStartDate.getMonth() + parseInt(formData.leaseTerm, 10));
+        calculatedEndDate.setMonth(parsedStartDate.getMonth() + parseInt(formData.leaseTerm, 10));  
         if (calculatedEndDate.getDate() !== parsedStartDate.getDate()) {
             calculatedEndDate.setDate(0);
         }

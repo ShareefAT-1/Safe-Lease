@@ -387,6 +387,11 @@ exports.getAgreementById = async (req, res) => {
         const userId = req.user._id;
         const userRole = req.user.role;
 
+        console.log('--- Debugging Agreement Authorization ---');
+        console.log('Requested Agreement ID:', id);
+        console.log('Authenticated User ID (req.user._id):', userId);
+        console.log('Authenticated User Role (req.user.role):', userRole);
+
         if (!isValidObjectId(id)) {
             return res.status(400).json({ message: 'Invalid agreement ID format.' });
         }
@@ -397,16 +402,23 @@ exports.getAgreementById = async (req, res) => {
             .populate('property', 'title address city state imageUrl');
 
         if (!agreement) {
+            console.log('Agreement not found for ID:', id); // Added log
             return res.status(404).json({ message: 'Agreement not found.' });
         }
 
-        if (userRole === 'landlord' && agreement.landlord.toString() !== userId.toString()) {
+        console.log('Agreement Landlord ID:', agreement.landlord._id.toString());
+        console.log('Agreement Tenant ID:', agreement.tenant._id.toString());
+
+        if (userRole === 'landlord' && agreement.landlord._id.toString() !== userId.toString()) {
+            console.log('Forbidden: Landlord mismatch.'); // Added log
             return res.status(403).json({ message: 'Forbidden: You are not authorized to view this agreement.' });
         }
-        if (userRole === 'tenant' && agreement.tenant.toString() !== userId.toString()) {
+        if (userRole === 'tenant' && agreement.tenant._id.toString() !== userId.toString()) {
+            console.log('Forbidden: Tenant mismatch.'); // Added log
             return res.status(403).json({ message: 'Forbidden: You are not authorized to view this agreement.' });
         }
 
+        console.log('Authorization successful for agreement:', id); // Added log
         res.status(200).json({ agreement });
     } catch (error) {
         console.error('Error fetching agreement by ID:', error);

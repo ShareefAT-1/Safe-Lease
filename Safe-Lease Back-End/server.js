@@ -38,7 +38,7 @@ const propertyRoutes = require('./Routes/property-route');
 const agreementRoutes = require('./Routes/agreement-route'); 
 
 app.use('/auth', authRoutes);
-app.use('/properties', propertyRoutes);
+app.use('/api/properties', propertyRoutes);
 app.use('/api/agreements', agreementRoutes);
 
 
