@@ -1,12 +1,12 @@
 // frontend/src/pages/SingleAgreementView.jsx (or components/Agreement/SingleAgreementView.jsx)
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import axiosbase from '../config/axios-config'; // Make sure this path is correct
-import { toast } from 'react-hot-toast'; // --- ADD THIS IMPORT ---
-import { FaCalendarAlt, FaDollarSign, FaFileContract, FaInfoCircle, FaUser, FaHome, FaCheckCircle, FaTimesCircle } from 'react-icons/fa'; // Added some icons for better UI
+import axiosbase from '../config/axios-config';
+import { toast } from 'react-hot-toast';
+import { FaCalendarAlt, FaDollarSign, FaFileContract, FaInfoCircle, FaUser, FaHome, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
 
 export default function SingleAgreementView() {
-  const { id } = useParams(); // This 'id' will be the agreement's _id
+  const { id } = useParams();
   const [agreement, setAgreement] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -20,15 +20,15 @@ export default function SingleAgreementView() {
           return;
         }
         setLoading(true);
-        // *** IMPORTANT: Fetch from your agreements API endpoint ***
         const res = await axiosbase.get(`/api/agreements/${id}`); 
-        setAgreement(res.data); // Adjust if your backend wraps it in { agreement: ... }
+        // --- CRITICAL FIX HERE: Access res.data.agreement ---
+        setAgreement(res.data.agreement); 
         setLoading(false);
       } catch (err) {
         console.error("Error fetching agreement:", err);
         const errorMessage = err.response?.data?.message || "Oops! Couldn't load agreement details.";
         setError(errorMessage);
-        toast.error(errorMessage); // This will now work
+        toast.error(errorMessage);
         setLoading(false);
       }
     };
@@ -64,7 +64,6 @@ export default function SingleAgreementView() {
     );
   }
 
-  // Helper to safely get property name/title
   const getPropertyName = (prop) => prop?.title || prop?.propertyName || 'N/A';
   const getUsername = (userObj) => userObj?.username || userObj?.name || 'N/A';
 
@@ -84,7 +83,6 @@ export default function SingleAgreementView() {
               </Link>
             </p>
             <p className="text-lg text-gray-700 mb-2"><span className="font-semibold">Location:</span> {agreement.property?.location || agreement.property?.address?.city || 'N/A'}</p>
-            {/* Add more property details if populated */}
           </div>
 
           {/* Tenant Details */}

@@ -10,6 +10,7 @@ import ChatComponent from "../components/ChatComponent";
 import { useAuth } from "../hooks/useAuth";
 
 const SingleProperty = () => {
+    console.log("SingleProperty.jsx - Version 2025-07-13 1.0");
     const { id } = useParams();
     const navigate = useNavigate();
     const { user, isAuthenticated, loading: authLoading } = useAuth();

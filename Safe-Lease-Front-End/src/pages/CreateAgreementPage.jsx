@@ -91,7 +91,8 @@ const CreateAgreementPage = () => {
             initialFormData.landlord = currentLandlordId;
         }
 
-        if (
+        // Only update formData state if there are actual changes
+        const hasFormDataChanged = 
             initialFormData.property !== formData.property ||
             initialFormData.landlord !== formData.landlord ||
             initialFormData.startDate !== formData.startDate ||
@@ -99,8 +100,9 @@ const CreateAgreementPage = () => {
             initialFormData.agreementTerms !== formData.agreementTerms ||
             initialFormData.message !== formData.message ||
             initialFormData.leaseTerm !== formData.leaseTerm ||
-            initialFormData.deposit !== formData.deposit
-        ) {
+            initialFormData.deposit !== formData.deposit;
+
+        if (hasFormDataChanged) {
             setFormData(initialFormData);
         }
 
@@ -112,12 +114,14 @@ const CreateAgreementPage = () => {
         const fetchDetails = async () => {
             setFetchingDetails(true);
             try {
-                const propertyRes = await axiosbase.get(`/properties/${currentPropertyId}`, {
+                // --- FIX: Add /api/ prefix for properties endpoint ---
+                const propertyRes = await axiosbase.get(`/api/properties/${currentPropertyId}`, {
                     headers: { Authorization: `Bearer ${backendToken}` }
                 });
                 setPropertyDetails(propertyRes.data);
 
-                const landlordRes = await axiosbase.get(`/auth/profile/${currentLandlordId}`, {
+                // --- FIX: Add /api/ prefix for auth profile endpoint ---
+                const landlordRes = await axiosbase.get(`/api/auth/profile/${currentLandlordId}`, {
                     headers: { Authorization: `Bearer ${backendToken}` }
                 });
                 setLandlordDetails(landlordRes.data);
@@ -136,7 +140,9 @@ const CreateAgreementPage = () => {
 
     }, [
         paramPropertyId, paramLandlordId, navigate, authLoading, isAuthenticated,
-        backendToken, user, location.state, agreementId
+        backendToken, user, location.state, agreementId,
+        // --- FIX: Add formData and isLandlordAction to dependencies ---
+        formData, isLandlordAction 
     ]);
 
 
@@ -231,17 +237,18 @@ const handleSubmit = async (e) => {
                 if (signature) {
                     formDataWithSignature.append('signature', signature);
                 }
-                // *** THE KEY FIX: Append the 'status' field for approval ***
                 formDataWithSignature.append('status', 'approved');
 
-                response = await axiosbase.put(`/agreements/respond/${agreementId}`, formDataWithSignature, {
+                // --- FIX: Add /api/ prefix for agreements respond endpoint ---
+                response = await axiosbase.put(`/api/agreements/respond/${agreementId}`, formDataWithSignature, {
                     headers: {
                         'Authorization': `Bearer ${backendToken}`,
                         'Content-Type': 'multipart/form-data'
                     },
                 });
             } else if (isNegotiationAction) {
-                response = await axiosbase.put(`/agreements/negotiate/${agreementId}`, payload, {
+                // --- FIX: Add /api/ prefix for agreements negotiate endpoint ---
+                response = await axiosbase.put(`/api/agreements/negotiate/${agreementId}`, payload, {
                     headers: { 'Authorization': `Bearer ${backendToken}` }
                 });
             } else {
@@ -253,13 +260,14 @@ const handleSubmit = async (e) => {
                 setSubmitting(false);
                 return;
             }
-            response = await axiosbase.post("/agreements/request", { ...payload, tenant: user.id }, {
+            // --- FIX: Add /api/ prefix for agreements request endpoint ---
+            response = await axiosbase.post("/api/agreements/request", { ...payload, tenant: user.id }, {
                 headers: { 'Authorization': `Bearer ${backendToken}` }
             });
         }
 
         toast.success(response.data.message || 'Agreement action successful!');
-        navigate('/dashboard');
+        navigate('/dashboard'); // Consider redirecting to tenant/landlord dashboard based on role
     } catch (error) {
         const errorMessage = error.response?.data?.message || error.message || 'Failed to process agreement. Please try again.';
         toast.error(errorMessage);
@@ -445,4 +453,4 @@ const handleSubmit = async (e) => {
     );
 };
 
-export default CreateAgreementPage;
+export default CreateAgreementPage
