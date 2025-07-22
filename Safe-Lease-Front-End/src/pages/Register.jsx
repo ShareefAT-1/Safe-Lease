@@ -40,7 +40,7 @@ const Register = () => {
     }
 
     try {
-      const res = await axiosbase.post("/auth/register", formData);
+      const res = await axiosbase.post("/api/auth/register", formData);
       const { token, user } = res.data;
 
       login(token, user); 

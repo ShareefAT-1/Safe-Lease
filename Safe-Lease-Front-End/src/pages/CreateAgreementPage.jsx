@@ -6,8 +6,8 @@ import { useAuth } from '../hooks/useAuth';
 
 const CreateAgreementPage = () => {
     const navigate = useNavigate();
-    const { id: agreementId } = useParams();
-    const { propertyId: paramPropertyId, landlordId: paramLandlordId } = useParams();
+    const { id: agreementId } = useParams(); // For landlord actions on existing agreements
+    const { propertyId: paramPropertyId, landlordId: paramLandlordId } = useParams(); // For tenant initiating new agreement
     const location = useLocation();
 
     const { user, isAuthenticated, backendToken, loading: authLoading } = useAuth();
@@ -30,18 +30,20 @@ const CreateAgreementPage = () => {
     const [landlordDetails, setLandlordDetails] = useState(null);
     const [fetchingDetails, setFetchingDetails] = useState(true);
 
-    const isLandlordAction = !!agreementId;
+    const isLandlordAction = !!agreementId; // True if it's an existing agreement being acted upon
     const isApprovalAction = location.state?.isApprovalAction;
     const isNegotiationAction = location.state?.isNegotiationAction;
 
+    // This useEffect will handle initial setup and data fetching
     useEffect(() => {
         if (authLoading) {
-            return;
+            return; // Wait for authentication state to be resolved
         }
 
+        // --- Authentication and Role Checks ---
         if (!isAuthenticated || !backendToken || !user?.id) {
             setFetchingDetails(false);
-            if (!isLandlordAction) {
+            if (!isLandlordAction) { // Only redirect tenant if not authenticated when initiating
                 toast.error("You must be logged in to access this page.");
                 navigate('/login');
             }
@@ -61,14 +63,15 @@ const CreateAgreementPage = () => {
 
         let currentPropertyId;
         let currentLandlordId;
-        let initialFormData = { ...formData };
+        let initialFormState = {}; // This will be the new state to set for the form
 
         if (isLandlordAction && location.state?.agreementData) {
+            // Landlord action: Pre-fill form from existing agreement data passed via location.state
             const { agreementData } = location.state;
             currentPropertyId = agreementData.property?._id || agreementData.property;
             currentLandlordId = agreementData.landlord?._id || agreementData.landlord;
 
-            initialFormData = {
+            initialFormState = {
                 property: currentPropertyId,
                 landlord: currentLandlordId,
                 startDate: agreementData.startDate ? new Date(agreementData.startDate).toISOString().split('T')[0] : '',
@@ -79,6 +82,7 @@ const CreateAgreementPage = () => {
                 deposit: agreementData.deposit,
             };
         } else {
+            // Tenant action: Initialize form with IDs from URL params, other fields empty
             currentPropertyId = paramPropertyId;
             currentLandlordId = paramLandlordId;
 
@@ -87,41 +91,45 @@ const CreateAgreementPage = () => {
                 navigate('/properties');
                 return;
             }
-            initialFormData.property = currentPropertyId;
-            initialFormData.landlord = currentLandlordId;
+            initialFormState = {
+                property: currentPropertyId,
+                landlord: currentLandlordId,
+                startDate: '',
+                rentAmount: '',
+                agreementTerms: '',
+                message: '',
+                leaseTerm: 12,
+                deposit: ''
+            };
         }
 
-        // Only update formData state if there are actual changes
-        const hasFormDataChanged = 
-            initialFormData.property !== formData.property ||
-            initialFormData.landlord !== formData.landlord ||
-            initialFormData.startDate !== formData.startDate ||
-            initialFormData.rentAmount !== formData.rentAmount ||
-            initialFormData.agreementTerms !== formData.agreementTerms ||
-            initialFormData.message !== formData.message ||
-            initialFormData.leaseTerm !== formData.leaseTerm ||
-            initialFormData.deposit !== formData.deposit;
+        // --- Set initial form data if it's different from current state ---
+        // This comparison ensures setFormData only runs if the *initial* state
+        // derived from URL/location.state is genuinely different from what's currently in formData.
+        // It prevents infinite loops when user inputs cause formData to change.
+        const currentFormDataAsString = JSON.stringify(formData);
+        const newInitialFormStateAsString = JSON.stringify(initialFormState);
 
-        if (hasFormDataChanged) {
-            setFormData(initialFormData);
+        if (currentFormDataAsString !== newInitialFormStateAsString) {
+            setFormData(initialFormState);
         }
+        // --- End of form data initialization ---
 
+        // --- Fetch Property and Landlord Details ---
         if (!currentPropertyId || !currentLandlordId) {
-            setFetchingDetails(false);
+            setFetchingDetails(false); // Cannot fetch if IDs are missing
             return;
         }
 
-        const fetchDetails = async () => {
+        const fetchDetails = async (propId, landId) => {
             setFetchingDetails(true);
             try {
-                // --- FIX: Add /api/ prefix for properties endpoint ---
-                const propertyRes = await axiosbase.get(`/api/properties/${currentPropertyId}`, {
+                const propertyRes = await axiosbase.get(`/api/properties/${propId}`, {
                     headers: { Authorization: `Bearer ${backendToken}` }
                 });
                 setPropertyDetails(propertyRes.data);
 
-                // --- FIX: Add /api/ prefix for auth profile endpoint ---
-                const landlordRes = await axiosbase.get(`/api/auth/profile/${currentLandlordId}`, {
+                const landlordRes = await axiosbase.get(`/api/auth/profile/${landId}`, {
                     headers: { Authorization: `Bearer ${backendToken}` }
                 });
                 setLandlordDetails(landlordRes.data);
@@ -136,13 +144,21 @@ const CreateAgreementPage = () => {
             }
         };
 
-        fetchDetails();
+        // Only fetch details if currentPropertyId and currentLandlordId are valid AND
+        // if details are not already loaded for these specific IDs, or if they failed to load previously.
+        if (currentPropertyId && currentLandlordId &&
+            (propertyDetails?._id !== currentPropertyId || landlordDetails?._id !== currentLandlordId || !propertyDetails || !landlordDetails)) {
+            fetchDetails(currentPropertyId, currentLandlordId);
+        } else {
+            setFetchingDetails(false); // No need to fetch if details are already valid or no IDs
+        }
 
     }, [
         paramPropertyId, paramLandlordId, navigate, authLoading, isAuthenticated,
-        backendToken, user, location.state, agreementId,
-        // --- FIX: Add formData and isLandlordAction to dependencies ---
-        formData, isLandlordAction 
+        backendToken, user, location.state, agreementId, isLandlordAction,
+        // Removed `formData` from dependencies to prevent infinite loop.
+        // Added `propertyDetails?._id` and `landlordDetails?._id` to re-trigger if property/landlord IDs change or are not yet set.
+        propertyDetails?._id, landlordDetails?._id
     ]);
 
 
@@ -239,7 +255,6 @@ const handleSubmit = async (e) => {
                 }
                 formDataWithSignature.append('status', 'approved');
 
-                // --- FIX: Add /api/ prefix for agreements respond endpoint ---
                 response = await axiosbase.put(`/api/agreements/respond/${agreementId}`, formDataWithSignature, {
                     headers: {
                         'Authorization': `Bearer ${backendToken}`,
@@ -247,7 +262,6 @@ const handleSubmit = async (e) => {
                     },
                 });
             } else if (isNegotiationAction) {
-                // --- FIX: Add /api/ prefix for agreements negotiate endpoint ---
                 response = await axiosbase.put(`/api/agreements/negotiate/${agreementId}`, payload, {
                     headers: { 'Authorization': `Bearer ${backendToken}` }
                 });
@@ -260,7 +274,6 @@ const handleSubmit = async (e) => {
                 setSubmitting(false);
                 return;
             }
-            // --- FIX: Add /api/ prefix for agreements request endpoint ---
             response = await axiosbase.post("/api/agreements/request", { ...payload, tenant: user.id }, {
                 headers: { 'Authorization': `Bearer ${backendToken}` }
             });
@@ -320,7 +333,7 @@ const handleSubmit = async (e) => {
                     <div className="mb-4 p-3 bg-blue-50 rounded-md border border-blue-200">
                         <h2 className="text-lg font-semibold text-blue-700">Property: {propertyDetails.title || propertyDetails.propertyName || 'N/A'}</h2>
                         <p className="text-sm text-gray-600">Address: {propertyDetails.address?.street}, {propertyDetails.address?.city}</p>
-                        <p className="text-sm text-gray-600">Listed Rent: ₹{propertyDetails.rent?.toLocaleString() || 'N/A'}</p>
+                        <p className="text-sm text-gray-600">Listed Rent: ₹{propertyDetails.price?.toLocaleString() || 'N/A'}</p> {/* Changed from propertyDetails.rent to propertyDetails.price */}
                     </div>
                 )}
                 {landlordDetails && (
@@ -453,4 +466,4 @@ const handleSubmit = async (e) => {
     );
 };
 
-export default CreateAgreementPage
+export default CreateAgreementPage;

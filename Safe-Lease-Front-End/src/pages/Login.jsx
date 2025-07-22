@@ -23,7 +23,7 @@ const Login = () => {
     }
 
     try {
-      const response = await axiosbase.post("/auth/login", formData);
+      const response = await axiosbase.post("/api/auth/login", formData);
       const { token, user } = response.data;
       
       await login(token, user); 
@@ -75,7 +75,7 @@ const Login = () => {
             />
           </div>
           <div className="flex justify-between items-center">
-            <Link to="/forgot-password" className="text-purple-400 font-medium hover:underline">Forgot Password?</Link> {/* Changed to Link */}
+            <Link to="/forgot-password" className="text-purple-400 font-medium hover:underline">Forgot Password?</Link> 
           </div>
           <button
             type="submit"

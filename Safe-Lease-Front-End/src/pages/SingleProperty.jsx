@@ -2,15 +2,25 @@ import React, { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import axiosbase from '../config/axios-config';
 import { toast } from "react-hot-toast";
-import { FaMapMarkerAlt, FaBed, FaBath, FaRulerCombined, FaCheckCircle, FaTimesCircle, FaCommentDots } from "react-icons/fa";
+import { FaMapMarkerAlt, FaBed, FaBath, FaRulerCombined, FaCheckCircle, FaTimesCircle, FaCommentDots, FaInfoCircle } from "react-icons/fa";
 import { MdOutlineHouse, MdOutlineDashboardCustomize } from "react-icons/md";
 import { FiPhoneCall } from "react-icons/fi";
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+import { useAuth } from '../hooks/useAuth';
+import ChatComponent from '../components/ChatComponent';
+import Globe3D from '../components/Globe3D'; // ADDED: Import Globe3D component
 
-import ChatComponent from "../components/ChatComponent";
-import { useAuth } from "../hooks/useAuth";
+// Fix for default Leaflet icon issue with Webpack/Vite
+delete L.Icon.Default.prototype._getIconUrl; 
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
+});
 
 const SingleProperty = () => {
-    console.log("SingleProperty.jsx - Version 2025-07-13 1.0");
     const { id } = useParams();
     const navigate = useNavigate();
     const { user, isAuthenticated, loading: authLoading } = useAuth();
@@ -18,6 +28,8 @@ const SingleProperty = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [showChat, setShowChat] = useState(false);
+    const [mapCenter, setMapCenter] = useState(null); // [latitude, longitude] for Leaflet
+    const [globeLocation, setGlobeLocation] = useState(null); // {latitude, longitude} for Three.js Globe
 
     const currentUserId = user?.id;
 
@@ -25,15 +37,46 @@ const SingleProperty = () => {
         const fetchPropertyDetails = async () => {
             try {
                 if (!id) {
-                    console.warn("No property ID found in URL parameters.");
                     setError("No property ID provided. Cannot load details.");
                     setLoading(false);
                     return;
                 }
-                // CORRECTED LINE BELOW
                 const res = await axiosbase.get(`/api/properties/${id}`);
                 setProperty(res.data);
                 setLoading(false);
+
+                const addressString = [
+                    res.data.address?.street,
+                    res.data.address?.city,
+                    res.data.address?.state,
+                    res.data.address?.zipCode,
+                    res.data.location
+                ].filter(Boolean).join(', ');
+
+                if (addressString && addressString !== 'N/A') {
+                    try {
+                        const geocodeRes = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(addressString)}&format=json&limit=1`);
+                        const geocodeData = await geocodeRes.json();
+                        if (geocodeData && geocodeData.length > 0) {
+                            const lat = parseFloat(geocodeData[0].lat);
+                            const lon = parseFloat(geocodeData[0].lon);
+                            setMapCenter([lat, lon]); // For Leaflet
+                            setGlobeLocation({ latitude: lat, longitude: lon }); // For Three.js Globe
+                        } else {
+                            console.warn("Geocoding failed for address:", addressString);
+                            setMapCenter([0, 0]);
+                            setGlobeLocation({ latitude: 0, longitude: 0 });
+                        }
+                    } catch (geocodeError) {
+                        console.error("Error during geocoding:", geocodeError);
+                        setMapCenter([0, 0]);
+                        setGlobeLocation({ latitude: 0, longitude: 0 });
+                    }
+                } else {
+                    setMapCenter([0, 0]);
+                    setGlobeLocation({ latitude: 0, longitude: 0 });
+                }
+
             } catch (err) {
                 console.error("Error fetching property:", err);
                 const errorMessage = err.response && err.response.data && err.response.data.message
@@ -79,7 +122,7 @@ const SingleProperty = () => {
     if (!property) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-8 text-center">
-                <img src="https://via.placeholder.com/150/cccccc/ffffff?text=Not+Found" alt="Property Not Found" className="mb-6 rounded-full shadow-lg" />
+                <img src="https://placehold.co/150/cccccc/ffffff?text=Not+Found" alt="Property Not Found" className="mb-6 rounded-full shadow-lg" />
                 <h2 className="text-3xl font-bold text-gray-800 mb-2">Property Not Found</h2>
                 <p className="text-gray-600 text-lg">It seems the property you are looking for doesn't exist or has been removed.</p>
                 <button
@@ -162,9 +205,6 @@ const SingleProperty = () => {
                             <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold mb-4 drop-shadow-2xl leading-tight">
                                 {displayTitle} 
                             </h1>
-                            <p className="text-xl md:text-2xl text-gray-200 drop-shadow-xl max-w-2xl">
-                                {displayDescription}
-                            </p>
                         </div>
                     </div>
                 </div>
@@ -224,7 +264,28 @@ const SingleProperty = () => {
                                 </div>
                             </div>
                         )}
-                    </div>
+
+                        {/* Map Section - This remains in the left column */}
+                        {mapCenter && (
+                            <div className="bg-white p-6 rounded-xl shadow-xl border border-gray-100">
+                                <h3 className="text-2xl font-bold text-gray-800 mb-6 border-b-2 pb-3 border-blue-200">Property Location</h3>
+                                <div className="w-full h-96 rounded-lg overflow-hidden shadow-md">
+                                    <MapContainer center={mapCenter} zoom={13} scrollWheelZoom={false} className="h-full w-full">
+                                        <TileLayer
+                                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                        />
+                                        <Marker position={mapCenter}>
+                                            <Popup>
+                                                {displayTitle} <br /> {fullLocation}
+                                            </Popup>
+                                        </Marker>
+                                    </MapContainer>
+                                </div>
+                            </div>
+                        )}
+                        
+                    </div> {/* End of lg:col-span-2 */}
 
                     <div className="lg:col-span-1 flex flex-col space-y-6">
                            <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-100 flex flex-col gap-4">
@@ -266,15 +327,42 @@ const SingleProperty = () => {
                                                toast.error("You are not authorized to initiate chat from here.", { icon: '🚫' });
                                            }
                                        }}
-                                       className="w-full bg-blue-600 text-white hover:bg-blue-700 font-bold py-3 px-6 rounded-xl text-lg transition-all duration-300 ease-in-out transform hover:-translate-y-1 hover:shadow-2xl focus:outline-none focus:ring-4 focus:ring-blue-300 flex items-center justify-center gap-3"
+                                       className="w-full bg-blue-600 text-white hover:bg-blue-700 font-bold py-3 px-6 rounded-xl text-lg transition-all duration-300 ease-in-out transform hover:-translate-y-1 hover:shadow-2xl focus:outline-none focus:ring-4 focus:ring-blue-300"
                                    >
                                        <FiPhoneCall className="text-2xl" /> Contact Seller
                                    </button>
                                )}
                            </div>
-                    </div>
-                </div>
-            </div>
+
+                           {/* REPLACED: Property Description Section with 3D Globe */}
+                           {globeLocation && ( // Only render globe if location data is available
+                               <div className="bg-white p-6 rounded-xl shadow-xl border border-gray-100 flex-1 flex flex-col items-center justify-center">
+                                   <h3 className="text-2xl font-bold text-gray-800 mb-6 border-b-2 pb-3 border-blue-200 flex items-center">
+                                       <FaMapMarkerAlt className="mr-2 text-blue-500" /> Global Location
+                                   </h3>
+                                   <Globe3D latitude={globeLocation.latitude} longitude={globeLocation.longitude} />
+                                   {/* Optionally, you can add a small text description below the globe if needed */}
+                                   <p className="text-gray-700 text-lg leading-relaxed text-center mt-4">
+                                       {displayDescription} {/* Keeping the description here for context */}
+                                   </p>
+                               </div>
+                           )}
+                           {/* Fallback if globeLocation is not available */}
+                           {!globeLocation && (
+                               <div className="bg-white p-6 rounded-xl shadow-xl border border-gray-100 flex-1 flex flex-col items-center justify-center">
+                                   <h3 className="text-2xl font-bold text-gray-800 mb-6 border-b-2 pb-3 border-blue-200 flex items-center">
+                                       <FaInfoCircle className="mr-2 text-blue-500" /> Property Overview
+                                   </h3>
+                                   <p className="text-gray-700 text-lg leading-relaxed whitespace-pre-line text-center">
+                                       {displayDescription}
+                                   </p>
+                                   <p className="text-gray-500 mt-4">Global map view not available for this location.</p>
+                               </div>
+                           )}
+
+                    </div> {/* End of lg:col-span-1 */}
+                </div> {/* End of grid */}
+            </div> {/* End of max-w-7xl mx-auto */}
 
             {showChat && isAuthenticated && currentUserId && chatRecipientId && ( 
                      <div className="fixed inset-0 bg-gray-800 bg-opacity-75 flex justify-center items-center z-50 p-4">
@@ -289,7 +377,7 @@ const SingleProperty = () => {
                                </button>
                            </div>
                            <div className="flex-1 overflow-hidden"> 
-                               <ChatComponent recipientId={chatRecipientId} />
+                               <ChatComponent recipientId={chatRecipientId} /> 
                            </div>
                        </div>
                      </div>
@@ -308,4 +396,4 @@ const SingleProperty = () => {
       </div>
   );
 
-  export default SingleProperty;
+  export default SingleProperty; 
