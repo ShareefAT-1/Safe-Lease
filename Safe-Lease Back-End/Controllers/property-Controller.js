@@ -1,35 +1,20 @@
+// Safe-Lease Back-End/Controllers/property-Controller.js
+
 const Property = require('../models/Property-model');
 
-//////////// Create new property //////////////////
+// --- UPDATED: createProperty now handles multiple files ---
 const createProperty = async (req, res) => {
     try {
-        console.log('REQ.USER:', req.user);
-        console.log('REQ.BODY:', req.body);
-        console.log('REQ.FILE:', req.file);
-
         const {
-            title,
-            description,
-            address,
-            city,
-            state,
-            zipCode,
-            price,
-            propertyType,
-            bedrooms,
-            bathrooms,
-            area,
-            available,
-            listingType
+            title, description, address, city, state, zipCode,
+            price, propertyType, bedrooms, bathrooms, area, available, listingType
         } = req.body;
 
+        // --- NEW: Map the array of uploaded files to an array of their paths ---
+        const imagePaths = req.files ? req.files.map(file => file.path.replace(/\\/g, '/')) : [];
+
         const propertyData = {
-            title,
-            description,
-            address,
-            city,
-            state,
-            zipCode,
+            title, description, address, city, state, zipCode,
             price: Number(price),
             propertyType,
             bedrooms: Number(bedrooms),
@@ -37,12 +22,11 @@ const createProperty = async (req, res) => {
             area: Number(area),
             available: available === 'true',
             listingType,
-            owner: req.user,
-            image: req.file ? req.file.path : null
+            owner: req.user._id, // Use the authenticated user's ID
+            images: imagePaths // --- UPDATED: Use the new images array ---
         };
 
         const property = new Property(propertyData);
-
         await property.save();
         res.status(201).json({ msg: 'Property created successfully', property });
     } catch (err) {
@@ -51,10 +35,9 @@ const createProperty = async (req, res) => {
     }
 };
 
-//////////// Get all properties ////////////////////
 const getAllProperties = async (req, res) => {
     try {
-        const properties = await Property.find().populate('owner', 'username email');
+        const properties = await Property.find().populate('owner', 'name email'); // Changed from username
         res.json(properties);
     } catch (err) {
         console.error(err);
@@ -62,13 +45,10 @@ const getAllProperties = async (req, res) => {
     }
 };
 
-/////////////// Get property by ID /////////////////
 const getPropertyById = async (req, res) => {
-    console.log('Attempting to fetch property with ID:', req.params.id);
     try {
-        const property = await Property.findById(req.params.id).populate('owner', 'username email');
+        const property = await Property.findById(req.params.id).populate('owner', 'name email'); // Changed from username
         if (!property) return res.status(404).json({ msg: 'Property not found' });
-
         res.json(property);
     } catch (err) {
         console.error(err);
@@ -76,67 +56,58 @@ const getPropertyById = async (req, res) => {
     }
 };
 
-///////////////// Update property //////////////////
+// --- UPDATED: updateProperty now handles multiple files ---
 const updateProperty = async (req, res) => {
     try {
         const property = await Property.findById(req.params.id);
         if (!property) return res.status(404).json({ msg: 'Property not found' });
 
-        // Ensure req.user._id is used for comparison
-        if (property.owner.toString() !== req.user._id.toString()) { // Changed from req.user
+        if (property.owner.toString() !== req.user._id.toString()) {
             return res.status(403).json({ msg: 'Unauthorized: This is not your property' });
         }
 
         const {
-            title,
-            description,
-            address,
-            city,
-            state,
-            zipCode,
-            price,
-            propertyType,
-            bedrooms,
-            bathrooms,
-            area,
-            available,
-            listingType
+            title, description, address, city, state, zipCode, price,
+            propertyType, bedrooms, bathrooms, area, available, listingType
         } = req.body;
 
-        property.title = title;
-        property.description = description;
-        property.address = address;
-        property.city = city;
-        property.state = state;
-        property.zipCode = zipCode;
-        property.price = Number(price);
-        property.propertyType = propertyType;
-        property.bedrooms = Number(bedrooms);
-        property.bathrooms = Number(bathrooms);
-        property.area = Number(area);
-        property.available = available === 'true';
-        property.listingType = listingType;
+        // Update text fields
+        property.title = title || property.title;
+        property.description = description || property.description;
+        property.address = address || property.address;
+        property.city = city || property.city;
+        property.state = state || property.state;
+        property.zipCode = zipCode || property.zipCode;
+        property.price = Number(price) || property.price;
+        property.propertyType = propertyType || property.propertyType;
+        property.bedrooms = Number(bedrooms) || property.bedrooms;
+        property.bathrooms = Number(bathrooms) || property.bathrooms;
+        property.area = Number(area) || property.area;
+        if (available !== undefined) {
+            property.available = available === 'true';
+        }
+        property.listingType = listingType || property.listingType;
 
-        if (req.file) {
-            property.image = req.file.path;
+        // --- NEW: Handle image updates. This logic replaces all existing images with new ones.
+        if (req.files && req.files.length > 0) {
+            const newImagePaths = req.files.map(file => file.path.replace(/\\/g, '/'));
+            property.images = newImagePaths;
         }
 
         await property.save();
         res.json({ msg: 'Property updated', property });
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ msg: 'Error updating property' });
+        console.error('UPDATE PROPERTY ERROR:', err);
+        res.status(500).json({ msg: 'Error updating property', error: err.message });
     }
 };
 
-/////////////// Delete property ///////////////////
 const deleteProperty = async (req, res) => {
     try {
         const property = await Property.findById(req.params.id);
         if (!property) return res.status(404).json({ msg: 'Property not found' });
 
-        // Ensure req.user._id is used for comparison
-        if (property.owner.toString() !== req.user._id.toString()) { // Changed from req.user
+        if (property.owner.toString() !== req.user._id.toString()) {
             return res.status(403).json({ msg: 'Unauthorized: This is not your property' });
         }
 
@@ -148,26 +119,19 @@ const deleteProperty = async (req, res) => {
     }
 };
 
-//////////// Search properties //////////////////
 const searchProperties = async (req, res) => {
     try {
         const { q } = req.query;
         if (!q) {
             return res.status(400).json({ error: 'Search query parameter "q" is required' });
         }
-
         const searchQuery = new RegExp(q, 'i');
-
         const properties = await Property.find({
             $or: [
-                { title: searchQuery },
-                { address: searchQuery },
-                { description: searchQuery },
-                { city: searchQuery },
-                { state: searchQuery }
+                { title: searchQuery }, { address: searchQuery }, { description: searchQuery },
+                { city: searchQuery }, { state: searchQuery }
             ]
-        }).populate('owner', 'username email');
-
+        }).populate('owner', 'name email');
         res.json({ properties });
     } catch (error) {
         console.error('PROPERTY SEARCH ERROR:', error);

@@ -1,3 +1,5 @@
+// Safe-Lease Back-End/Routes/property-route.js
+
 const express = require('express');
 const router = express.Router();
 const {
@@ -11,22 +13,17 @@ const {
 
 const authMiddleware = require('../middleware/authMiddleware');
 const roleMiddleware = require('../middleware/roleMiddleware');
-
 const upload = require('../middleware/uploadMiddleware.js');
 
-router.post('/create', authMiddleware, roleMiddleware('landlord'), upload.single('image'), (req, res, next) => {
-    console.log("Request received:", req.body);
-    console.log("Image file:", req.file);
-    createProperty(req, res, next);
-});
+// --- UPDATED: Changed upload.single('image') to upload.array('images', 10) ---
+router.post('/create', authMiddleware, roleMiddleware('landlord'), upload.array('images', 10), createProperty);
 
 router.get('/', getAllProperties);
-
 router.get('/search', searchProperties);
-
 router.get('/:id', getPropertyById);
 
-router.put('/:id', authMiddleware, roleMiddleware('landlord'), upload.single('image'), updateProperty);
+// --- UPDATED: Changed upload.single('image') to upload.array('images', 10) ---
+router.put('/:id', authMiddleware, roleMiddleware('landlord'), upload.array('images', 10), updateProperty);
 
 router.delete('/:id', authMiddleware, roleMiddleware('landlord'), deleteProperty);
 
