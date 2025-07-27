@@ -6,8 +6,8 @@ import { useAuth } from '../hooks/useAuth';
 
 const CreateAgreementPage = () => {
     const navigate = useNavigate();
-    const { id: agreementId } = useParams(); // For landlord actions on existing agreements
-    const { propertyId: paramPropertyId, landlordId: paramLandlordId } = useParams(); // For tenant initiating new agreement
+    const { id: agreementId } = useParams();
+    const { propertyId: paramPropertyId, landlordId: paramLandlordId } = useParams();
     const location = useLocation();
 
     const { user, isAuthenticated, backendToken, loading: authLoading } = useAuth();
@@ -20,7 +20,7 @@ const CreateAgreementPage = () => {
         agreementTerms: '',
         message: '',
         leaseTerm: 12,
-        deposit: ''
+        depositAmount: '' // Corrected state key
     });
     const [signature, setSignature] = useState(null);
     const [submitting, setSubmitting] = useState(false);
@@ -30,143 +30,115 @@ const CreateAgreementPage = () => {
     const [landlordDetails, setLandlordDetails] = useState(null);
     const [fetchingDetails, setFetchingDetails] = useState(true);
 
-    const isLandlordAction = !!agreementId; // True if it's an existing agreement being acted upon
+    const isLandlordAction = !!agreementId;
     const isApprovalAction = location.state?.isApprovalAction;
     const isNegotiationAction = location.state?.isNegotiationAction;
 
-    // This useEffect will handle initial setup and data fetching
-    useEffect(() => {
-        if (authLoading) {
-            return; // Wait for authentication state to be resolved
+   // Replace your entire existing useEffect hook with this one.
+
+// Replace your entire existing useEffect hook with this one.
+
+useEffect(() => {
+    if (authLoading) {
+        return;
+    }
+
+    if (!isAuthenticated || !backendToken || !user?.id) {
+        setFetchingDetails(false);
+        if (!isLandlordAction) {
+            toast.error("You must be logged in to access this page.");
+            navigate('/login');
         }
+        return;
+    }
 
-        // --- Authentication and Role Checks ---
-        if (!isAuthenticated || !backendToken || !user?.id) {
-            setFetchingDetails(false);
-            if (!isLandlordAction) { // Only redirect tenant if not authenticated when initiating
-                toast.error("You must be logged in to access this page.");
-                navigate('/login');
-            }
-            return;
-        }
+    if (!isLandlordAction && user.role !== 'tenant') {
+        toast.error("Only tenants can initiate agreement requests.");
+        navigate('/');
+        return;
+    }
+    if (isLandlordAction && user.role !== 'landlord') {
+        toast.error("Only landlords can finalize agreement requests.");
+        navigate('/');
+        return;
+    }
 
-        if (!isLandlordAction && user.role !== 'tenant') {
-            toast.error("Only tenants can initiate agreement requests.");
-            navigate('/');
-            return;
-        }
-        if (isLandlordAction && user.role !== 'landlord') {
-            toast.error("Only landlords can finalize agreement requests.");
-            navigate('/');
-            return;
-        }
+    let currentPropertyId;
+    let currentLandlordId;
+    let initialFormState = {};
 
-        let currentPropertyId;
-        let currentLandlordId;
-        let initialFormState = {}; // This will be the new state to set for the form
+    // --- THIS IS THE CORRECTED LOGIC ---
+    if (isLandlordAction && location.state?.agreementData) {
+        const { agreementData } = location.state;
+        currentPropertyId = agreementData.property?._id || agreementData.property;
+        currentLandlordId = agreementData.landlord?._id || agreementData.landlord;
 
-        if (isLandlordAction && location.state?.agreementData) {
-            // Landlord action: Pre-fill form from existing agreement data passed via location.state
-            const { agreementData } = location.state;
-            currentPropertyId = agreementData.property?._id || agreementData.property;
-            currentLandlordId = agreementData.landlord?._id || agreementData.landlord;
-
-            initialFormState = {
-                property: currentPropertyId,
-                landlord: currentLandlordId,
-                startDate: agreementData.startDate ? new Date(agreementData.startDate).toISOString().split('T')[0] : '',
-                rentAmount: agreementData.rentAmount,
-                agreementTerms: agreementData.agreementTerms,
-                message: agreementData.message,
-                leaseTerm: agreementData.leaseTerm,
-                deposit: agreementData.deposit,
-            };
-        } else {
-            // Tenant action: Initialize form with IDs from URL params, other fields empty
-            currentPropertyId = paramPropertyId;
-            currentLandlordId = paramLandlordId;
-
-            if (!currentPropertyId || !currentLandlordId) {
-                toast.error("Property ID or Landlord ID is missing in the URL. Cannot create agreement request.");
-                navigate('/properties');
-                return;
-            }
-            initialFormState = {
-                property: currentPropertyId,
-                landlord: currentLandlordId,
-                startDate: '',
-                rentAmount: '',
-                agreementTerms: '',
-                message: '',
-                leaseTerm: 12,
-                deposit: ''
-            };
-        }
-
-        // --- Set initial form data if it's different from current state ---
-        // This comparison ensures setFormData only runs if the *initial* state
-        // derived from URL/location.state is genuinely different from what's currently in formData.
-        // It prevents infinite loops when user inputs cause formData to change.
-        const currentFormDataAsString = JSON.stringify(formData);
-        const newInitialFormStateAsString = JSON.stringify(initialFormState);
-
-        if (currentFormDataAsString !== newInitialFormStateAsString) {
-            setFormData(initialFormState);
-        }
-        // --- End of form data initialization ---
-
-        // --- Fetch Property and Landlord Details ---
-        if (!currentPropertyId || !currentLandlordId) {
-            setFetchingDetails(false); // Cannot fetch if IDs are missing
-            return;
-        }
-
-        const fetchDetails = async (propId, landId) => {
-            setFetchingDetails(true);
-            try {
-                const propertyRes = await axiosbase.get(`/api/properties/${propId}`, {
-                    headers: { Authorization: `Bearer ${backendToken}` }
-                });
-                setPropertyDetails(propertyRes.data);
-
-                const landlordRes = await axiosbase.get(`/api/auth/profile/${landId}`, {
-                    headers: { Authorization: `Bearer ${backendToken}` }
-                });
-                setLandlordDetails(landlordRes.data);
-
-            } catch (error) {
-                const errorMessage = error.response?.data?.message || error.message || "Failed to load property or landlord details.";
-                toast.error(errorMessage);
-                setPropertyDetails(null);
-                setLandlordDetails(null);
-            } finally {
-                setFetchingDetails(false);
-            }
+        // This logic correctly prioritizes the 'final' negotiated values over the original ones
+        initialFormState = {
+            property: currentPropertyId,
+            landlord: currentLandlordId,
+            startDate: (agreementData.finalStartDate || agreementData.startDate) ? new Date(agreementData.finalStartDate || agreementData.startDate).toISOString().split('T')[0] : '',
+            rentAmount: agreementData.finalRentAmount || agreementData.rentAmount || '',
+            agreementTerms: agreementData.agreementTerms || '',
+            message: agreementData.requestMessage || agreementData.message || '',
+            leaseTerm: agreementData.finalLeaseTermMonths || agreementData.leaseTerm || 12,
+            depositAmount: agreementData.finalDepositAmount || agreementData.deposit || '', // This line is now fully robust
         };
+    } else {
+        currentPropertyId = paramPropertyId;
+        currentLandlordId = paramLandlordId;
 
-        // Only fetch details if currentPropertyId and currentLandlordId are valid AND
-        // if details are not already loaded for these specific IDs, or if they failed to load previously.
-        if (currentPropertyId && currentLandlordId &&
-            (propertyDetails?._id !== currentPropertyId || landlordDetails?._id !== currentLandlordId || !propertyDetails || !landlordDetails)) {
-            fetchDetails(currentPropertyId, currentLandlordId);
-        } else {
-            setFetchingDetails(false); // No need to fetch if details are already valid or no IDs
+        if (!currentPropertyId || !currentLandlordId) {
+            toast.error("Property ID or Landlord ID is missing in the URL.");
+            navigate('/properties');
+            return;
         }
+        initialFormState = {
+            property: currentPropertyId, landlord: currentLandlordId,
+            startDate: '', rentAmount: '', agreementTerms: '',
+            message: '', leaseTerm: 12, depositAmount: ''
+        };
+    }
+    
+    // This is a safer and simpler way to check if the form data needs updating
+    if (JSON.stringify(initialFormState) !== JSON.stringify(formData)) {
+        setFormData(initialFormState);
+    }
 
-    }, [
-        paramPropertyId, paramLandlordId, navigate, authLoading, isAuthenticated,
-        backendToken, user, location.state, agreementId, isLandlordAction,
-        // Removed `formData` from dependencies to prevent infinite loop.
-        // Added `propertyDetails?._id` and `landlordDetails?._id` to re-trigger if property/landlord IDs change or are not yet set.
-        propertyDetails?._id, landlordDetails?._id
-    ]);
+    if (!currentPropertyId || !currentLandlordId) {
+        setFetchingDetails(false);
+        return;
+    }
+
+    const fetchDetails = async (propId, landId) => {
+        setFetchingDetails(true);
+        try {
+            const propertyRes = await axiosbase.get(`/api/properties/${propId}`);
+            setPropertyDetails(propertyRes.data);
+            const landlordRes = await axiosbase.get(`/api/auth/profile/${landId}`);
+            setLandlordDetails(landlordRes.data);
+        } catch (error) {
+            toast.error("Failed to load property or landlord details.");
+        } finally {
+            setFetchingDetails(false);
+        }
+    };
+
+    if (!propertyDetails || propertyDetails._id !== currentPropertyId) {
+        fetchDetails(currentPropertyId, currentLandlordId);
+    } else {
+        setFetchingDetails(false);
+    }
+// eslint-disable-next-line react-hooks/exhaustive-deps
+}, [paramPropertyId, paramLandlordId, navigate, authLoading, isAuthenticated, location.state, agreementId]);
+
 
 
     const validateForm = () => {
         const errors = {};
         if (!formData.startDate) errors.startDate = "Move-in date is required.";
         if (!formData.rentAmount || parseFloat(formData.rentAmount) <= 0) errors.rentAmount = "Rent amount must be a positive number.";
-        if (!formData.deposit || parseFloat(formData.deposit) < 0) errors.deposit = "Deposit must be a non-negative number.";
+        if (!formData.depositAmount || parseFloat(formData.depositAmount) < 0) errors.depositAmount = "Deposit must be a non-negative number."; // Corrected validation check
         if (!formData.leaseTerm || parseInt(formData.leaseTerm, 10) <= 0) errors.leaseTerm = "Lease term must be a positive number of months.";
         if (!formData.agreementTerms) errors.agreementTerms = "Agreement terms are required.";
 
@@ -235,7 +207,7 @@ const handleSubmit = async (e) => {
             property: formData.property,
             landlord: formData.landlord,
             rentAmount: parseFloat(formData.rentAmount),
-            depositAmount: parseFloat(formData.deposit),
+            depositAmount: parseFloat(formData.depositAmount), // Corrected to depositAmount
             startDate: parsedStartDate.toISOString(),
             endDate: isoEndDate,
             leaseTermMonths: parseInt(formData.leaseTerm, 10),
@@ -280,7 +252,15 @@ const handleSubmit = async (e) => {
         }
 
         toast.success(response.data.message || 'Agreement action successful!');
-        navigate('/dashboard'); // Consider redirecting to tenant/landlord dashboard based on role
+        
+        if (user.role === 'landlord') {
+            navigate('/landlord/requests'); // Redirect to landlord requests list
+        } else if (user.role === 'tenant') {
+            navigate('/tenant/my-requests'); // Redirect to tenant requests list
+        } else {
+            navigate('/dashboard'); // Fallback for other roles or general dashboard
+        }
+
     } catch (error) {
         const errorMessage = error.response?.data?.message || error.message || 'Failed to process agreement. Please try again.';
         toast.error(errorMessage);
@@ -288,6 +268,7 @@ const handleSubmit = async (e) => {
         setSubmitting(false);
     }
 };
+
 
     if (authLoading || fetchingDetails) {
         return (
@@ -333,7 +314,7 @@ const handleSubmit = async (e) => {
                     <div className="mb-4 p-3 bg-blue-50 rounded-md border border-blue-200">
                         <h2 className="text-lg font-semibold text-blue-700">Property: {propertyDetails.title || propertyDetails.propertyName || 'N/A'}</h2>
                         <p className="text-sm text-gray-600">Address: {propertyDetails.address?.street}, {propertyDetails.address?.city}</p>
-                        <p className="text-sm text-gray-600">Listed Rent: ₹{propertyDetails.price?.toLocaleString() || 'N/A'}</p> {/* Changed from propertyDetails.rent to propertyDetails.price */}
+                        <p className="text-sm text-gray-600">Listed Rent: ₹{propertyDetails.price?.toLocaleString() || 'N/A'}</p>
                     </div>
                 )}
                 {landlordDetails && (
@@ -374,18 +355,18 @@ const handleSubmit = async (e) => {
                 </div>
 
                 <div className="mb-4">
-                    <label htmlFor="deposit" className="block text-gray-700 text-sm font-bold mb-2">Proposed Security Deposit (₹):</label>
+                    <label htmlFor="depositAmount" className="block text-gray-700 text-sm font-bold mb-2">Proposed Security Deposit (₹):</label>
                     <input
                         type="number"
-                        id="deposit"
-                        name="deposit"
-                        value={formData.deposit}
+                        id="depositAmount"
+                        name="depositAmount"
+                        value={formData.depositAmount}
                         onChange={handleChange}
-                        className={`shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 ${formErrors.deposit ? 'border-red-500' : 'border-gray-300'}`}
+                        className={`shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 ${formErrors.depositAmount ? 'border-red-500' : 'border-gray-300'}`}
                         required
                         disabled={isFormDisabled || submitting}
                     />
-                    {formErrors.deposit && <p className="text-red-500 text-xs italic mt-1">{formErrors.deposit}</p>}
+                    {formErrors.depositAmount && <p className="text-red-500 text-xs italic mt-1">{formErrors.depositAmount}</p>}
                 </div>
 
                 <div className="mb-4">

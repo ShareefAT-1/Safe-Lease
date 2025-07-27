@@ -1,8 +1,11 @@
+// src/components/TenantRequests.jsx
+
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import api from '.././services/api';
+import api from '../services/api';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import axiosbase from '../config/axios-config'; // --- FIX: ADDED THIS IMPORT ---
 
 export default function TenantRequests() {
   const { user, isAuthenticated } = useAuth();
@@ -64,18 +67,15 @@ export default function TenantRequests() {
             {requests.map((request) => (
               <tr key={request._id} className="border-b last:border-b-0 hover:bg-gray-50">
                 <td className="py-3 px-4">
-                  {/* Safely access property title/name */}
                   <Link to={`/property/${request.property?._id}`} className="text-blue-600 hover:underline">
                     {request.property?.title || request.property?.propertyName || 'N/A'}
                   </Link>
                 </td>
                 <td className="py-3 px-4">
-                  {/* Safely access landlord username/name */}
                   {request.landlord?.username || request.landlord?.name || 'N/A'}
                 </td>
                 <td className="py-3 px-4">
-                  {/* Safely access rent: check requestedTerms.rent first, then rentAmount */}
-                  ${request.requestedTerms?.rent || request.rentAmount || 'N/A'}
+                  ₹{request.requestedTerms?.rent?.toLocaleString() || request.rentAmount?.toLocaleString() || 'N/A'}
                 </td>
                 <td className="py-3 px-4">
                   <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
@@ -93,12 +93,16 @@ export default function TenantRequests() {
                   <Link to={`/agreement/${request._id}`} className="text-blue-600 hover:underline mr-2">
                     View Details
                   </Link>
+                  {request.status === 'approved' && !request.tenantSigned && (
+                    <Link to={`/agreement/sign/${request._id}`} className="font-bold text-green-600 hover:underline">
+                      Review & Sign
+                    </Link>
+                  )}
                   {request.pdfPath && (
-                    <a href={request.pdfPath} target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:underline">
+                    <a href={`${axiosbase.defaults.baseURL}${request.pdfPath}`} target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:underline ml-2">
                       View PDF
                     </a>
                   )}
-                  {/* Add more actions if needed, e.g., cancel for pending requests */}
                 </td>
               </tr>
             ))}
