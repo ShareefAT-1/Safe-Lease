@@ -20,27 +20,78 @@ const SkeletonCard = () => (
 /* inline SVG icons to avoid external dependency / font issues */
 const Icons = {
   bed: (
-    <svg className="w-5 h-5 mr-2 text-sky-300" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4" />
+    <svg
+      className="w-6 h-6 text-blue-300 flex-shrink-0"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M3 7v10m18 0V7M3 12h18M7 12V9a2 2 0 1 1 4 0v3m6 0V9a2 2 0 1 1 4 0v3"
+      />
     </svg>
   ),
   bath: (
-    <svg className="w-5 h-5 mr-2 text-pink-300" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 6l3 1m0 0l-3 9a5 5 0 006 0M6 7l3 9M6 7l6-2" />
+    <svg
+      className="w-6 h-6 text-pink-300 flex-shrink-0"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M3 10h18v4a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4v-4z"
+      />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M7 10V7a3 3 0 0 1 6 0v3"
+      />
     </svg>
   ),
   size: (
-    <svg className="w-5 h-5 mr-2 text-rose-300" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4" />
+    <svg
+      className="w-6 h-6 text-purple-300 flex-shrink-0"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M3 3h6v6H3zM15 3h6v6h-6zM3 15h6v6H3zM15 15h6v6h-6z"
+      />
     </svg>
   ),
   location: (
-    <svg className="w-4 h-4 mr-1 text-emerald-300" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+    <svg
+      className="w-6 h-6 text-green-400 flex-shrink-0"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M12 11a4 4 0 1 0-4-4 4 4 0 0 0 4 4z"
+      />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M12 2a8 8 0 0 1 8 8c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 8-8z"
+      />
     </svg>
-  ),
+  )
+
 };
+
 
 /* ---------- PROPERTY CARD (upgraded visuals + spotlight effect) ---------- */
 const PropertyCard = ({ property }) => {
@@ -132,25 +183,28 @@ const PropertyCard = ({ property }) => {
           <p className="text-slate-300 mb-4 line-clamp-2">{description}</p>
 
           <div className="flex items-center justify-between text-sm text-slate-300 border-t border-slate-800 pt-3">
+
+            {/* Left: Beds + Baths */}
             <div className="flex items-center">
               {bedrooms ? (
-                <div className="flex items-center mr-4">
+                <div className="flex items-center gap-2 mr-4">
                   {Icons.bed}
                   <span>{bedrooms}</span>
                 </div>
               ) : null}
 
               {bathrooms ? (
-                <div className="flex items-center mr-4">
+                <div className="flex items-center gap-2 mr-4">
                   {Icons.bath}
                   <span>{bathrooms}</span>
                 </div>
               ) : null}
             </div>
 
+            {/* Right: Size */}
             <div className="flex items-center text-slate-300">
               {size ? (
-                <div className="flex items-center">
+                <div className="flex items-center gap-2">
                   {Icons.size}
                   <span>{size} sqft</span>
                 </div>
@@ -158,7 +212,9 @@ const PropertyCard = ({ property }) => {
                 <div className="text-xs">—</div>
               )}
             </div>
+
           </div>
+
         </div>
       </motion.div>
     </Link>
