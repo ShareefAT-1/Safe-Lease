@@ -1,206 +1,199 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useAuth } from '../hooks/useAuth'; // CORRECTED PATH to src/hooks/useAuth.js
-import { toast } from 'react-hot-toast';
-import io from 'socket.io-client';
-import axiosbase from '../config/axios-config'; // Import axiosbase for the base URL
+// src/components/ChatComponent.jsx
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useAuth } from "../hooks/useAuth";
+import { toast } from "react-hot-toast";
+import io from "socket.io-client";
+import axiosbase from "../config/axios-config";
 
-const ChatComponent = ({ recipientId }) => {
-    const { user, isAuthenticated, backendToken, loading: authLoading } = useAuth(); 
-    const [messages, setMessages] = useState([]);
-    const [newMessage, setNewMessage] = useState('');
-    const socketRef = useRef(null); 
-    
-    const [conversationId, setConversationId] = useState(null);
-    const messagesEndRef = useRef(null);
-    const scrollContainerRef = useRef(null);
+const ChatComponent = ({ recipientId, embedMode = true }) => {
+  const { user, isAuthenticated, backendToken, loading: authLoading } = useAuth();
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState("");
 
-    // Use baseURL from axiosbase directly, or define if needed for non-axiosbase calls
-    // In this component, we only need it for the socket connection.
-    const SOCKET_URL = axiosbase.defaults.baseURL; 
+  const socketRef = useRef(null);
+  const [conversationId, setConversationId] = useState(null);
 
+  const messagesEndRef = useRef(null);
+  const scrollContainerRef = useRef(null);
 
-    useEffect(() => {
-        const currentUserId = user?.id;
-        if (currentUserId && recipientId) {
-            const sortedIds = [currentUserId, recipientId].sort();
-            const generatedChatRoomId = `${sortedIds[0]}_${sortedIds[1]}`;
-            setConversationId(generatedChatRoomId);
-        } else {
-            setConversationId(null);
-            console.warn("ChatComponent: Current user ID or recipient ID is missing. Cannot form conversation ID.");
-        }
-    }, [user, recipientId]);
+  // Ensure proper socket URL format
+  const SOCKET_URL = (axiosbase?.defaults?.baseURL || "").replace(/\/$/, "");
 
-    const scrollToBottom = useCallback(() => {
-        if (messagesEndRef.current) {
-            messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-        }
-    }, [messagesEndRef]);
+  // Build conversation ID based on sorted IDs
+  useEffect(() => {
+    if (user?.id && recipientId) {
+      const sorted = [user.id, recipientId].sort();
+      setConversationId(`${sorted[0]}_${sorted[1]}`);
+    } else {
+      setConversationId(null);
+    }
+  }, [user, recipientId]);
 
-    useEffect(() => {
-        if (authLoading || !isAuthenticated || !backendToken || !conversationId) {
-            if (socketRef.current) {
-                socketRef.current.disconnect();
-                socketRef.current = null;
-            }
-            setMessages([]);
-            return;
-        }
+  // Smooth scroll to bottom
+  const scrollToBottom = useCallback(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, []);
 
-        console.log(`ChatComponent: Attempting to connect socket to ${SOCKET_URL}`);
-        const newSocket = io(SOCKET_URL, { // Use SOCKET_URL here
-            query: { token: backendToken },
-            transports: ['websocket'],
-        });
+  // Socket connection handler
+  useEffect(() => {
+    if (!isAuthenticated || authLoading || !backendToken || !conversationId) {
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
+      setMessages([]);
+      return;
+    }
 
-        socketRef.current = newSocket;
+    try {
+      const socket = io(SOCKET_URL, {
+        transports: ["websocket"],
+        query: { token: backendToken },
+      });
 
-        newSocket.on('connect', () => {
-            console.log('Socket connected successfully!');
-            newSocket.emit('joinRoom', { conversationId });
-        });
+      socketRef.current = socket;
 
-        newSocket.on('authError', (message) => {
-            console.error('Socket authentication error:', message);
-            toast.error(`Chat error: ${message}`);
-            newSocket.disconnect();
-        });
+      socket.on("connect", () => {
+        socket.emit("joinRoom", { conversationId });
+      });
 
-        newSocket.on('connect_error', (err) => {
-            console.error('Socket connection error:', err.message);
-            toast.error('Failed to connect to chat. Please try again.');
-        });
+      socket.on("authError", (msg) => {
+        toast.error(msg);
+        socket.disconnect();
+      });
 
-        newSocket.on('disconnect', (reason) => {
-            console.log('Socket disconnected:', reason);
-            if (reason === 'io server disconnect') {
-                newSocket.connect();
-            }
-            toast.info('Disconnected from chat.');
-        });
+      socket.on("connect_error", () => {
+        toast.error("Chat connection failed");
+      });
 
-        newSocket.on('chatHistory', (history) => {
-            setMessages(history);
-            console.log(`Received chat history: ${history.length} messages.`);
-            scrollToBottom();
-        });
+      socket.on("chatHistory", (history = []) => {
+        setMessages(history);
+        setTimeout(scrollToBottom, 50);
+      });
 
-        newSocket.on('receiveMessage', (message) => {
-            setMessages((prevMessages) => [...prevMessages, message]);
-            scrollToBottom();
-        });
+      socket.on("receiveMessage", (message) => {
+        setMessages((prev) => [...prev, message]);
+        setTimeout(scrollToBottom, 50);
+      });
 
-        newSocket.on('error', (message) => {
-            console.error('Socket error from server:', message);
-            toast.error(`Chat Error: ${message}`);
-        });
+      socket.on("error", () => toast.error("Chat error occurred"));
+    } catch (err) {
+      console.error("[chat init error]", err);
+      toast.error("Chat failed to initialize");
+    }
 
-        return () => {
-            console.log('Disconnecting socket...');
-            if (socketRef.current) {
-                socketRef.current.off();
-                socketRef.current.disconnect();
-                socketRef.current = null;
-            }
-            setMessages([]);
-        };
-    }, [isAuthenticated, backendToken, conversationId, authLoading, SOCKET_URL, scrollToBottom]);
-
-    useEffect(() => {
-        scrollToBottom();
-    }, [messages, scrollToBottom]);
-
-    const handleSendMessage = (e) => {
-        e.preventDefault();
-        if (!newMessage.trim() || !socketRef.current || !user?.id || !conversationId) {
-            toast.error("Cannot send empty message or chat not ready.");
-            return;
-        }
-
-        socketRef.current.emit('sendMessage', {
-            conversationId,
-            content: newMessage.trim(),
-            senderId: user.id,
-        });
-        setNewMessage('');
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
+      setMessages([]);
     };
+  }, [isAuthenticated, backendToken, conversationId, authLoading, SOCKET_URL, scrollToBottom]);
 
-    const getSenderDisplayName = (messageSender) => {
-        if (user && user.id === messageSender._id) {
-            return user.username || user.name || 'You';
-        } 
-        return messageSender.name || messageSender.username || `User ${messageSender._id?.substring(0, 5)}...`;
-    };
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, scrollToBottom]);
 
-    if (authLoading) {
-        return <div className="p-4 text-center">Loading authentication for chat...</div>;
+  // SEND MESSAGE — NO LOCAL MESSAGE INSERTION
+  const handleSendMessage = (e) => {
+    e.preventDefault();
+
+    if (!newMessage.trim()) return;
+
+    if (!socketRef.current || !conversationId || !user?.id) {
+      toast.error("Chat not ready.");
+      return;
     }
 
-    if (!isAuthenticated) {
-        return <div className="p-4 text-center text-red-500">Please log in to use chat.</div>;
-    }
-    
-    if (!socketRef.current || !conversationId) {
-        return <div className="p-4 text-center text-gray-500">Connecting to chat...</div>;
-    }
+    socketRef.current.emit("sendMessage", {
+      conversationId,
+      content: newMessage.trim(),
+      senderId: user.id,
+    });
 
-    return (
-        <div className="flex flex-col h-full bg-gray-50 border rounded-lg shadow-md">
-            <div className="p-4 border-b bg-blue-600 text-white rounded-t-lg">
-                <h2 className="text-xl font-semibold">
-                    Chat with {recipientId ? `User ${recipientId.substring(0, 5)}...` : 'Someone'}
-                </h2>
-            </div>
-            <div
-                ref={scrollContainerRef}
-                className="flex-1 p-4 overflow-y-auto custom-scrollbar"
-            >
-                {messages.map((msg) => (
-                    <div
-                        key={msg._id}
-                        className={`flex mb-3 ${msg.sender._id === user.id ? 'justify-end' : 'justify-start'}`}
-                    >
-                        <div
-                            className={`max-w-[70%] p-3 rounded-lg shadow-sm ${
-                                msg.sender._id === user.id
-                                    ? 'bg-blue-500 text-white'
-                                    : 'bg-gray-200 text-gray-800'
-                            }`}
-                        >
-                            <div className="font-semibold text-sm mb-1">
-                                {getSenderDisplayName(msg.sender)}
-                            </div>
-                            <p className="text-sm break-words">{msg.content}</p>
-                            {msg.timestamp && (
-                                <span className="block text-right text-xs mt-1 opacity-75">
-                                    {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </span>
-                            )}
-                        </div>
-                    </div>
-                ))}
-                <div ref={messagesEndRef} /> 
-            </div>
-            <form onSubmit={handleSendMessage} className="p-4 border-t bg-white rounded-b-lg">
-                <div className="flex">
-                    <input
-                        type="text"
-                        value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
-                        placeholder="Type a message..."
-                        className="flex-1 border rounded-l-lg py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <button
-                        type="submit"
-                        className="bg-blue-600 text-white px-6 py-2 rounded-r-lg hover:bg-blue-700 transition duration-200"
-                        disabled={!socketRef.current || !newMessage.trim()}
-                    >
-                        Send
-                    </button>
+    setNewMessage(""); // No optimistic UI — server will echo back
+  };
+
+  // Format sender name
+  const getSenderDisplayName = (sender) => {
+    if (!sender) return "Unknown";
+    if (user && user.id === sender._id) return user.username || "You";
+    return sender.name || sender.username || `User ${String(sender._id).slice(0, 6)}`;
+  };
+
+  // Guards
+  if (authLoading) return <div className="p-4 text-center text-white">Loading chat...</div>;
+  if (!isAuthenticated) return <div className="p-4 text-center text-red-400">Log in to chat.</div>;
+  if (!conversationId) return <div className="p-4 text-center text-gray-400">Preparing chat…</div>;
+  if (!socketRef.current) return <div className="p-4 text-center text-gray-400">Connecting…</div>;
+
+  return (
+    <div className={`flex flex-col h-full ${embedMode ? "" : "min-h-[400px]"}`}>
+      {/* Messages */}
+      <div
+        ref={scrollContainerRef}
+        className="flex-1 overflow-y-auto px-4 py-3 space-y-3 custom-scrollbar"
+      >
+        {messages.length === 0 && (
+          <div className="text-center text-gray-400 py-6">No messages yet — say hi 👋</div>
+        )}
+
+        {messages.map((msg) => {
+          const mine = msg.sender?._id === user.id;
+
+          return (
+            <div key={msg._id || Math.random()} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+              <div
+                className={`max-w-[70%] p-3 rounded-lg shadow 
+                  ${mine ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-900"}`}
+              >
+                <div className="text-xs font-semibold mb-1">
+                  {getSenderDisplayName(msg.sender)}
                 </div>
-            </form>
+
+                <div className="text-sm break-words">{msg.content}</div>
+
+                {msg.timestamp && (
+                  <div className="text-right text-xs opacity-70 mt-1">
+                    {new Date(msg.timestamp).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Input box */}
+      <form onSubmit={handleSendMessage} className="p-3 border-t bg-transparent">
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            placeholder="Type a message…"
+            className="flex-1 px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-cyan-400"
+          />
+
+          <button
+            type="submit"
+            disabled={!newMessage.trim()}
+            className="px-5 py-2 bg-cyan-600 text-white rounded-lg disabled:opacity-40"
+          >
+            Send
+          </button>
         </div>
-    );
+      </form>
+    </div>
+  );
 };
 
 export default ChatComponent;

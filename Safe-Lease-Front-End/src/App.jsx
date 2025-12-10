@@ -18,9 +18,11 @@ import LandlordChatsPage from "./pages/LandlordChatsPage";
 import LandlordDashboard from "./pages/LandlordDashboard";
 import TenantDashboard from "./pages/TenantDashboard";
 import SingleAgreementView from "./pages/SingleAgreementView";
+import UserProfile from "./pages/UserProfile";
+
 
 // --- NEW IMPORT FOR THE TENANT SIGNING PAGE ---
-import TenantSignAgreementPage from "./pages/TenantSignAgreementPage"; 
+import TenantSignAgreementPage from "./pages/TenantSignAgreementPage";
 
 function App() {
   return (
@@ -30,7 +32,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/about" element={<About />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} /> 
+        <Route path="/register" element={<Register />} />
         <Route path="/properties" element={<AllProducts />} />
         <Route path="/property/:id" element={<SingleProperty />} />
         <Route path="/create-property" element={<PropertyForm />} />
@@ -38,10 +40,11 @@ function App() {
         <Route path="/landlord/requests" element={<LandlordRequests />} />
         <Route path="/agreements/finalize/:id" element={<CreateAgreementPage />} />
         <Route path="/tenant/my-requests" element={<TenantRequests />} />
-        <Route path="/agreement/:id" element={<SingleAgreementView />} /> 
+        <Route path="/agreement/:id" element={<SingleAgreementView />} />
         <Route path="/landlord-dashboard" element={<LandlordDashboard />} />
         <Route path="/tenant-dashboard" element={<TenantDashboard />} />
         <Route path="/landlord-chats" element={<LandlordChatsPage />} />
+        <Route path="/profile/:id" element={<UserProfile />} />
 
         {/* --- NEW ROUTE FOR THE TENANT TO SIGN --- */}
         <Route path="/agreement/sign/:id" element={<TenantSignAgreementPage />} />
