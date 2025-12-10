@@ -1,40 +1,21 @@
 // src/pages/UserProfile.jsx
-
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import axiosbase from "../config/axios-config";
+import { FaUserCircle, FaEdit } from "react-icons/fa";
+import toast from "react-hot-toast";
+import RoleBadge from "../components/RoleBadge";
+import EditProfileModal from "../components/EditProfileModal";
+import { useAuth } from "../hooks/useAuth";
 
-import {
-  FaUserCircle,
-  FaShieldAlt,
-  FaHome,
-  FaComments,
-  FaCrown,
-} from "react-icons/fa";
-
-export default function UserProfile() {
+const UserProfile = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const { user: me, isAuthenticated } = useAuth();
 
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-
-  const roleStyles = {
-    admin: "bg-yellow-600/30 border-yellow-500/40 text-yellow-300",
-    landlord: "bg-green-600/20 border-green-500/40 text-green-300",
-    tenant: "bg-purple-600/20 border-purple-500/40 text-purple-300",
-  };
-
-  const roleLabel = {
-    admin: "Administrator",
-    landlord: "Landlord",
-    tenant: "Tenant",
-  };
-
-  const roleIcon = {
-    admin: <FaCrown className="text-yellow-400 text-xl" />,
-    landlord: <FaHome className="text-green-300 text-xl" />,
-    tenant: <FaComments className="text-purple-300 text-xl" />,
-  };
+  const [editingOpen, setEditingOpen] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -42,114 +23,147 @@ export default function UserProfile() {
         const res = await axiosbase.get(`/api/users/${id}`);
         setUser(res.data);
       } catch (err) {
-        console.error("User load error:", err);
+        console.error("Error loading user profile:", err);
+        toast.error("Failed to load profile.");
       } finally {
         setLoading(false);
       }
     };
-
     fetchUser();
   }, [id]);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-white text-2xl">
-        Loading profile…
-      </div>
-    );
-  }
+  const handleUpdateLocal = (updated) => {
+    // Called after successful update in modal — update local UI
+    setUser((prev) => ({ ...prev, ...updated }));
+    toast.success("Profile updated");
+  };
 
-  if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-white text-2xl">
-        User not found.
-      </div>
-    );
-  }
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center bg-[#0d1224] text-white">
+      Loading profile...
+    </div>
+  );
 
-  const r = user.role;
+  if (!user) return (
+    <div className="min-h-screen flex items-center justify-center bg-[#0d1224] text-white">
+      User not found.
+    </div>
+  );
+
+  const isMyProfile = isAuthenticated && me?.id === user._id;
 
   return (
-    <section className="min-h-screen bg-[#0c1124] pt-20 pb-20 px-6 text-white">
-      <div className="max-w-3xl mx-auto p-10 rounded-3xl border border-[#1a233a] bg-[#11172b] shadow-[0_0_40px_rgba(0,255,255,0.08)] relative overflow-hidden">
+    <section className="min-h-screen bg-[#0d1224] pt-16 pb-24 px-6">
+      <div className="max-w-4xl mx-auto relative">
+        {/* Glass Card */}
+        <div className="bg-gradient-to-tr from-white/4 to-white/2 border border-white/6 backdrop-blur-md rounded-3xl p-8 shadow-[0_8px_30px_rgba(0,0,0,0.6)]">
+          <div className="flex gap-6 items-center">
+            {/* Avatar ring + image */}
+            <div className="relative">
+              <div className="w-36 h-36 rounded-full p-1"
+                   style={{
+                     boxShadow: "0 0 24px rgba(62,231,255,0.12), 0 0 48px rgba(155,92,255,0.06)",
+                     background: "linear-gradient(135deg, rgba(62,231,255,0.06), rgba(155,92,255,0.04))"
+                   }}>
+                {user.profilePic ? (
+                  // avatar
+                  <img
+                    src={user.profilePic}
+                    alt={user.name || user.username}
+                    className="w-full h-full rounded-full object-cover border-2 border-white/10"
+                    onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/300x300/111827/FFFFFF?text=No+Img"; }}
+                  />
+                ) : (
+                  <div className="w-full h-full rounded-full flex items-center justify-center bg-gradient-to-b from-[#081225] to-[#081018] text-cyan-300">
+                    <FaUserCircle className="text-6xl opacity-80" />
+                  </div>
+                )}
+              </div>
 
-        {/* Glow gradient behind */}
-        <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-purple-600/10 blur-3xl"></div>
+              {/* glow ring */}
+              <div className="absolute -inset-1 rounded-full pointer-events-none"
+                   style={{
+                     boxShadow: user.role === "admin" ? "0 0 30px rgba(255,223,89,0.28)" : user.role === "landlord" ? "0 0 30px rgba(62,231,255,0.18)" : "0 0 30px rgba(155,92,255,0.18)"
+                   }} />
+            </div>
 
-        {/* MAIN CONTENT */}
-        <div className="relative z-10">
+            {/* Name & meta */}
+            <div className="flex-1">
+              <div className="flex items-center gap-4">
+                <h1 className="text-3xl font-extrabold text-white">{user.name || user.username}</h1>
 
-          {/* HEADER */}
-          <div className="flex items-center gap-6">
-            {user.profilePic ? (
-              <img
-                src={user.profilePic}
-                alt="profile"
-                className="w-20 h-20 rounded-full border-2 border-cyan-400 object-cover shadow-lg"
-              />
-            ) : (
-              <FaUserCircle className="text-7xl text-cyan-400" />
-            )}
+                <div className="ml-2">
+                  <RoleBadge role={user.role} />
+                </div>
 
-            <div>
-              <h1 className="text-3xl font-bold tracking-wide">
-                {user.username || user.name}
-              </h1>
-              <p className="opacity-80 mt-1">
-                {roleLabel[r] || "User"}
-              </p>
+                {isMyProfile && (
+                  <button
+                    onClick={() => setEditingOpen(true)}
+                    className="ml-auto inline-flex items-center gap-2 bg-white/6 px-3 py-2 rounded-lg hover:bg-white/8 transition"
+                  >
+                    <FaEdit />
+                    <span className="text-sm">Edit profile</span>
+                  </button>
+                )}
+              </div>
+
+              <p className="text-slate-300 mt-2">{user.bio || "No bio yet. Add a little story!"}</p>
+
+              <div className="mt-4 flex gap-3">
+                <div className="text-sm text-slate-400">
+                  <div><strong className="text-white mr-2">Email:</strong> {user.email}</div>
+                </div>
+                <div className="text-sm text-slate-400">
+                  <div><strong className="text-white mr-2">Since:</strong> {new Date(user.createdAt || user._createdAt || Date.now()).toLocaleDateString()}</div>
+                </div>
+              </div>
+
+              <div className="mt-6 flex gap-3">
+                <button onClick={() => navigate(`/properties?owner=${user._id}`)}
+                        className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-700 transition">
+                  View Listings
+                </button>
+
+                <button onClick={() => navigate(`/landlord-chats?user=${user._id}`)}
+                        className="px-4 py-2 rounded-lg bg-white/6 hover:bg-white/8 transition">
+                  Open Chat Inbox
+                </button>
+              </div>
+
             </div>
           </div>
 
-          {/* ROLE BADGE */}
-          <div
-            className={`mt-6 px-5 py-3 rounded-xl border flex items-center gap-3 w-fit shadow-lg ${roleStyles[r]}`}
-          >
-            {roleIcon[r]}
-            <span className="font-semibold">
-              {roleLabel[r]}
-            </span>
-          </div>
-
-          {/* DETAILS */}
-          <div className="mt-10 space-y-4 text-lg opacity-90">
-            <p>
-              <span className="font-semibold text-cyan-300">Email:</span>{" "}
-              {user.email}
-            </p>
-
-            {r === "landlord" && (
-              <p className="flex items-center gap-2 text-green-300">
-                <FaHome /> Verified Property Owner
-              </p>
-            )}
-
-            {r === "tenant" && (
-              <p className="flex items-center gap-2 text-purple-300">
-                <FaComments /> Active Tenant
-              </p>
-            )}
-
-            {r === "admin" && (
-              <p className="flex items-center gap-2 text-yellow-300">
-                <FaCrown /> Platform Administrator
-              </p>
-            )}
-          </div>
-
-          {/* VERIFIED BOX */}
-          <div className="mt-8 p-5 bg-[#1b243b] rounded-xl border border-[#243158] shadow-inner">
-            <div className="flex items-center gap-3 mb-2">
-              <FaShieldAlt className="text-cyan-400 text-xl" />
-              <span className="text-lg font-semibold">Verified SafeLease User</span>
+          {/* extra card */}
+          <div className="mt-8 p-6 rounded-2xl bg-[#071028]/60 border border-white/6">
+            <h3 className="text-lg font-semibold text-cyan-200">Account details</h3>
+            <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-3 bg-[#0d1728] rounded-lg">
+                <div className="text-xs text-slate-400 uppercase">Role</div>
+                <div className="text-white font-semibold mt-1">{user.role}</div>
+              </div>
+              <div className="p-3 bg-[#0d1728] rounded-lg">
+                <div className="text-xs text-slate-400 uppercase">Verified</div>
+                <div className="text-white font-semibold mt-1">{user.verified ? "Yes" : "No"}</div>
+              </div>
+              <div className="p-3 bg-[#0d1728] rounded-lg">
+                <div className="text-xs text-slate-400 uppercase">Properties</div>
+                <div className="text-white font-semibold mt-1">{user.propertyCount ?? "—"}</div>
+              </div>
             </div>
-            <p className="text-slate-400">
-              This profile has been authenticated and is trusted within the SafeLease network.
-            </p>
           </div>
-
         </div>
       </div>
+
+      {/* Edit Modal */}
+      {editingOpen && (
+        <EditProfileModal
+          user={user}
+          onClose={() => setEditingOpen(false)}
+          onSaved={handleUpdateLocal}
+        />
+      )}
     </section>
   );
-}
+};
+
+export default UserProfile;
