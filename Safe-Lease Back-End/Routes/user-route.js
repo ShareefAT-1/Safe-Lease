@@ -33,13 +33,30 @@ router.get("/:id", async (req, res) => {
 // ------------------ UPDATE USER PROFILE ------------------
 router.put("/:id", authMiddleware, async (req, res) => {
     try {
-        const { name, bio, profilePic } = req.body;
+        const updates = {};
+
+        if (typeof req.body.name === "string" && req.body.name.trim() !== "") {
+            updates.name = req.body.name.trim();
+        }
+
+        if (typeof req.body.bio === "string") {
+            updates.bio = req.body.bio;
+        }
+
+        if (
+            typeof req.body.profilePic === "string" &&
+            req.body.profilePic.trim() !== ""
+        ) {
+            updates.profilePic = req.body.profilePic.trim();
+        }
+
 
         const updatedUser = await User.findByIdAndUpdate(
             req.params.id,
-            { name, bio, profilePic },
+            updates,
             { new: true }
         ).select("-password");
+
 
         if (!updatedUser)
             return res.status(404).json({ message: "User not found" });

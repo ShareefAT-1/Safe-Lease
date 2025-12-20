@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import RoleBadge from "../components/RoleBadge";
 import EditProfileModal from "../components/EditProfileModal";
 import { useAuth } from "../hooks/useAuth";
+import { getImageUrl } from "../utils/getImageUrl";
 
 const UserProfile = () => {
   const { id } = useParams();
@@ -61,14 +62,14 @@ const UserProfile = () => {
             {/* Avatar ring + image */}
             <div className="relative">
               <div className="w-36 h-36 rounded-full p-1"
-                   style={{
-                     boxShadow: "0 0 24px rgba(62,231,255,0.12), 0 0 48px rgba(155,92,255,0.06)",
-                     background: "linear-gradient(135deg, rgba(62,231,255,0.06), rgba(155,92,255,0.04))"
-                   }}>
+                style={{
+                  boxShadow: "0 0 24px rgba(62,231,255,0.12), 0 0 48px rgba(155,92,255,0.06)",
+                  background: "linear-gradient(135deg, rgba(62,231,255,0.06), rgba(155,92,255,0.04))"
+                }}>
                 {user.profilePic ? (
                   // avatar
                   <img
-                    src={user.profilePic}
+                    src={getImageUrl(user.profilePic)}
                     alt={user.name || user.username}
                     className="w-full h-full rounded-full object-cover border-2 border-white/10"
                     onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/300x300/111827/FFFFFF?text=No+Img"; }}
@@ -82,9 +83,9 @@ const UserProfile = () => {
 
               {/* glow ring */}
               <div className="absolute -inset-1 rounded-full pointer-events-none"
-                   style={{
-                     boxShadow: user.role === "admin" ? "0 0 30px rgba(255,223,89,0.28)" : user.role === "landlord" ? "0 0 30px rgba(62,231,255,0.18)" : "0 0 30px rgba(155,92,255,0.18)"
-                   }} />
+                style={{
+                  boxShadow: user.role === "admin" ? "0 0 30px rgba(255,223,89,0.28)" : user.role === "landlord" ? "0 0 30px rgba(62,231,255,0.18)" : "0 0 30px rgba(155,92,255,0.18)"
+                }} />
             </div>
 
             {/* Name & meta */}
@@ -119,13 +120,17 @@ const UserProfile = () => {
               </div>
 
               <div className="mt-6 flex gap-3">
-                <button onClick={() => navigate(`/properties?owner=${user._id}`)}
-                        className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-700 transition">
+                <button
+                  onClick={() => navigate('/my-properties')}
+                  className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white font-medium transition"
+                >
                   View Listings
                 </button>
 
+
+
                 <button onClick={() => navigate(`/landlord-chats?user=${user._id}`)}
-                        className="px-4 py-2 rounded-lg bg-white/6 hover:bg-white/8 transition">
+                  className="px-4 py-2 rounded-lg bg-white/6 hover:bg-white/8 transition">
                   Open Chat Inbox
                 </button>
               </div>

@@ -5,6 +5,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import SearchBox from "./SearchBox";
 import toast from "react-hot-toast";
 import { useAuth } from "../hooks/useAuth"; 
+import { getImageUrl } from "../utils/getImageUrl";
 
 export default function Navbar() {
   const { isAuthenticated, user, logout } = useAuth();
@@ -113,7 +114,7 @@ export default function Navbar() {
               <li className="flex items-center space-x-2 font-semibold text-blue-600">
                 {user.profilePic && (
                   <img
-                    src={user.profilePic}
+                    src={getImageUrl(user.profilePic)}
                     alt="Profile"
                     className="w-8 h-8 rounded-full object-cover"
                   />
