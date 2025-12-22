@@ -20,7 +20,8 @@ import TenantDashboard from "./pages/TenantDashboard";
 import SingleAgreementView from "./pages/SingleAgreementView";
 import UserProfile from "./pages/UserProfile";
 import MyProperties from "./pages/MyProperties";
-
+import LandlordProperties from "./pages/LandlordProperties";
+import TenantChatsPage from "./pages/TenantChatsPage";
 
 // --- NEW IMPORT FOR THE TENANT SIGNING PAGE ---
 import TenantSignAgreementPage from "./pages/TenantSignAgreementPage";
@@ -45,8 +46,14 @@ function App() {
         <Route path="/landlord-dashboard" element={<LandlordDashboard />} />
         <Route path="/tenant-dashboard" element={<TenantDashboard />} />
         <Route path="/landlord-chats" element={<LandlordChatsPage />} />
+        <Route path="/tenant-chats" element={<TenantChatsPage />} />
         <Route path="/profile/:id" element={<UserProfile />} />
         <Route path="/my-properties" element={<MyProperties />} />
+        <Route
+          path="/landlord/:landlordId/properties"
+          element={<LandlordProperties />}
+        />
+
 
         {/* --- NEW ROUTE FOR THE TENANT TO SIGN --- */}
         <Route path="/agreement/sign/:id" element={<TenantSignAgreementPage />} />

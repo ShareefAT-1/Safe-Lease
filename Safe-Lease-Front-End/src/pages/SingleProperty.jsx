@@ -263,7 +263,7 @@ const SingleProperty = () => {
                     </button>
                   )}
 
-                  {isAuthenticated && user?.role !== "tenant" && (
+                  {isAuthenticated && user?.role === "tenant" && (
                     <button
                       onClick={() => navigate(`/profile/${chatRecipientId}`)}
                       className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl mt-4 shadow-lg"

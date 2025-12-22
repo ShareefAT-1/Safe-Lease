@@ -51,7 +51,16 @@ const UserProfile = () => {
     </div>
   );
 
-  const isMyProfile = isAuthenticated && me?.id === user._id;
+  const isMyProfile = isAuthenticated && me?.id === user?._id;
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0d1224] text-white">
+        User not found.
+      </div>
+    );
+  }
+
 
   return (
     <section className="min-h-screen bg-[#0d1224] pt-16 pb-24 px-6">
@@ -121,7 +130,13 @@ const UserProfile = () => {
 
               <div className="mt-6 flex gap-3">
                 <button
-                  onClick={() => navigate('/my-properties')}
+                  onClick={() => {
+                    if (isMyProfile) {
+                      navigate("/my-properties");
+                    } else {
+                      navigate(`/landlord/${user._id}/properties`);
+                    }
+                  }}
                   className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white font-medium transition"
                 >
                   View Listings
@@ -129,10 +144,21 @@ const UserProfile = () => {
 
 
 
-                <button onClick={() => navigate(`/landlord-chats?user=${user._id}`)}
-                  className="px-4 py-2 rounded-lg bg-white/6 hover:bg-white/8 transition">
+
+
+                <button
+                  onClick={() => {
+                    if (me?.role === "landlord") {
+                      navigate(`/landlord-chats?with=${user._id}`);
+                    } else {
+                      navigate(`/tenant-chats?with=${user._id}`);
+                    }
+                  }}
+                  className="px-4 py-2 rounded-lg bg-white/6 hover:bg-white/8 transition"
+                >
                   Open Chat Inbox
                 </button>
+
               </div>
 
             </div>

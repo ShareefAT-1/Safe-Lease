@@ -97,12 +97,35 @@ const getPropertiesByOwner = async (req, res) => {
         res.status(500).json({ message: 'Failed to load owner properties' });
     }
 };
+// GET properties of a landlord (PUBLIC)
+const getPropertiesByLandlordPublic = async (req, res) => {
+    try {
+        const { landlordId } = req.params;
+
+        const properties = await Property.find({ owner: landlordId })
+            .sort({ createdAt: -1 });
+
+        const normalized = properties.map(p => {
+            const obj = p.toObject();
+
+            return {
+                ...obj,
+                title:
+                    obj.title?.trim() ||
+                    obj.propertyName?.trim() ||
+                    "Untitled Property",
+            };
+        });
+
+        res.json(normalized);
+    } catch (err) {
+        console.error("PUBLIC LANDLORD PROPERTIES ERROR:", err);
+        res.status(500).json({ message: "Failed to load landlord properties" });
+    }
+};
 
 // =======================
 // UPDATE PROPERTY
-// =======================
-// =======================
-// UPDATE PROPERTY (FIXED)
 // =======================
 const updateProperty = async (req, res) => {
     try {
@@ -216,6 +239,7 @@ module.exports = {
     getAllProperties,
     getPropertyById,
     getPropertiesByOwner,
+    getPropertiesByLandlordPublic,
     updateProperty,
     deleteProperty,
     searchProperties,

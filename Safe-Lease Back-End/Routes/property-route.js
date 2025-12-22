@@ -1,16 +1,15 @@
-// Safe-Lease Back-End/Routes/property-route.js
-
 const express = require('express');
 const router = express.Router();
 
 const {
-  createProperty,
-  getAllProperties,
-  getPropertyById,
-  getPropertiesByOwner,
-  updateProperty,
-  deleteProperty,
-  searchProperties
+    createProperty,
+    getAllProperties,
+    getPropertyById,
+    getPropertiesByOwner,
+    getPropertiesByLandlordPublic,
+    updateProperty,
+    deleteProperty,
+    searchProperties
 } = require('../Controllers/property-Controller');
 
 const authMiddleware = require('../middleware/authMiddleware');
@@ -23,11 +22,17 @@ const upload = require('../middleware/uploadMiddleware.js');
 
 // Create property (landlord only)
 router.post(
-  '/create',
-  authMiddleware,
-  roleMiddleware('landlord'),
-  upload.array('images', 10),
-  createProperty
+    '/create',
+    authMiddleware,
+    roleMiddleware('landlord'),
+    upload.array('images', 10),
+    createProperty
+);
+
+// ✅ Public landlord listings (TENANT VIEW)
+router.get(
+    '/landlord/:landlordId',
+    getPropertiesByLandlordPublic
 );
 
 // Get all properties (public)
@@ -36,32 +41,32 @@ router.get('/', getAllProperties);
 // Search properties
 router.get('/search', searchProperties);
 
-// ✅ Get properties by owner (landlord dashboard / profile)
+// ✅ Owner listings (LANDLORD DASHBOARD)
 router.get(
-  '/owner/:userId',
-  authMiddleware,
-  roleMiddleware('landlord'),
-  getPropertiesByOwner
+    '/owner/:userId',
+    authMiddleware,
+    roleMiddleware('landlord'),
+    getPropertiesByOwner
 );
 
 // Get single property
 router.get('/:id', getPropertyById);
 
-// Update property (landlord only)
+// Update property
 router.put(
-  '/:id',
-  authMiddleware,
-  roleMiddleware('landlord'),
-  upload.array('images', 10),
-  updateProperty
+    '/:id',
+    authMiddleware,
+    roleMiddleware('landlord'),
+    upload.array('images', 10),
+    updateProperty
 );
 
-// Delete property (landlord only)
+// Delete property
 router.delete(
-  '/:id',
-  authMiddleware,
-  roleMiddleware('landlord'),
-  deleteProperty
+    '/:id',
+    authMiddleware,
+    roleMiddleware('landlord'),
+    deleteProperty
 );
 
 module.exports = router;
