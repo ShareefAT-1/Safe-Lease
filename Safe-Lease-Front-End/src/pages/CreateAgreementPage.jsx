@@ -20,7 +20,7 @@ const CreateAgreementPage = () => {
         agreementTerms: '',
         message: '',
         leaseTerm: 12,
-        depositAmount: '' // Corrected state key
+        depositAmount: '' 
     });
     const [signature, setSignature] = useState(null);
     const [submitting, setSubmitting] = useState(false);
@@ -33,10 +33,6 @@ const CreateAgreementPage = () => {
     const isLandlordAction = !!agreementId;
     const isApprovalAction = location.state?.isApprovalAction;
     const isNegotiationAction = location.state?.isNegotiationAction;
-
-   // Replace your entire existing useEffect hook with this one.
-
-// Replace your entire existing useEffect hook with this one.
 
 useEffect(() => {
     if (authLoading) {
@@ -67,13 +63,11 @@ useEffect(() => {
     let currentLandlordId;
     let initialFormState = {};
 
-    // --- THIS IS THE CORRECTED LOGIC ---
     if (isLandlordAction && location.state?.agreementData) {
         const { agreementData } = location.state;
         currentPropertyId = agreementData.property?._id || agreementData.property;
         currentLandlordId = agreementData.landlord?._id || agreementData.landlord;
 
-        // This logic correctly prioritizes the 'final' negotiated values over the original ones
         initialFormState = {
             property: currentPropertyId,
             landlord: currentLandlordId,
@@ -82,7 +76,7 @@ useEffect(() => {
             agreementTerms: agreementData.agreementTerms || '',
             message: agreementData.requestMessage || agreementData.message || '',
             leaseTerm: agreementData.finalLeaseTermMonths || agreementData.leaseTerm || 12,
-            depositAmount: agreementData.finalDepositAmount || agreementData.deposit || '', // This line is now fully robust
+            depositAmount: agreementData.finalDepositAmount || agreementData.deposit || '', 
         };
     } else {
         currentPropertyId = paramPropertyId;
@@ -100,7 +94,6 @@ useEffect(() => {
         };
     }
     
-    // This is a safer and simpler way to check if the form data needs updating
     if (JSON.stringify(initialFormState) !== JSON.stringify(formData)) {
         setFormData(initialFormState);
     }
@@ -129,7 +122,6 @@ useEffect(() => {
     } else {
         setFetchingDetails(false);
     }
-// eslint-disable-next-line react-hooks/exhaustive-deps
 }, [paramPropertyId, paramLandlordId, navigate, authLoading, isAuthenticated, location.state, agreementId]);
 
 
@@ -207,7 +199,7 @@ const handleSubmit = async (e) => {
             property: formData.property,
             landlord: formData.landlord,
             rentAmount: parseFloat(formData.rentAmount),
-            depositAmount: parseFloat(formData.depositAmount), // Corrected to depositAmount
+            depositAmount: parseFloat(formData.depositAmount), 
             startDate: parsedStartDate.toISOString(),
             endDate: isoEndDate,
             leaseTermMonths: parseInt(formData.leaseTerm, 10),
@@ -254,11 +246,11 @@ const handleSubmit = async (e) => {
         toast.success(response.data.message || 'Agreement action successful!');
         
         if (user.role === 'landlord') {
-            navigate('/landlord/requests'); // Redirect to landlord requests list
+            navigate('/landlord/requests'); 
         } else if (user.role === 'tenant') {
-            navigate('/tenant/my-requests'); // Redirect to tenant requests list
+            navigate('/tenant/my-requests'); 
         } else {
-            navigate('/dashboard'); // Fallback for other roles or general dashboard
+            navigate('/dashboard'); 
         }
 
     } catch (error) {

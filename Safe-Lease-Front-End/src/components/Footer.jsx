@@ -13,29 +13,28 @@ export default function Footer() {
         style={{ backgroundSize: "200% 200%" }}
       /> */}
 
-     {/* 🌈 Live RGB sliding strip */}
-{/* 🌈 Smooth, slower RGB sliding strip */}
+    
 <motion.div
   className="absolute top-0 left-0 right-0 h-[4px] w-full overflow-hidden pointer-events-none"
   animate={{
     backgroundColor: [
-      "rgb(66,135,245)",   // calm blue
-      "rgb(120,66,245)",  // purple
-      "rgb(66,245,162)",  // mint/emerald
-      "rgb(245,66,162)",  // soft pink
-      "rgb(66,135,245)",  // back to blue for loop
+      "rgb(66,135,245)",   
+      "rgb(120,66,245)",  
+      "rgb(66,245,162)",  
+      "rgb(245,66,162)",  
+      "rgb(66,135,245)",  
     ],
     backgroundPosition: ["0% 50%", "100% 50%"]
   }}
   transition={{
     backgroundColor: {
-      duration: 12,        // ← slowed
+      duration: 12,        
       repeat: Infinity,
-      ease: "easeInOut",  // ← smoother
+      ease: "easeInOut",  
       repeatType: "mirror"
     },
     backgroundPosition: {
-      duration: 18,        // ← slowed slide motion
+      duration: 18,       
       repeat: Infinity,
       ease: "linear"
     }
@@ -48,7 +47,6 @@ export default function Footer() {
 
       <div className="relative z-10 max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-10">
 
-        {/* Brand Section */}
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -73,7 +71,6 @@ export default function Footer() {
           <p className="mt-5 text-xs text-gray-400">&copy; 2025 SafeLease. All rights reserved.</p>
         </motion.div>
 
-        {/* Quick Links */}
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -117,7 +114,6 @@ export default function Footer() {
           </ul>
         </motion.div>
 
-        {/* Newsletter Section */}
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -144,7 +140,6 @@ export default function Footer() {
           </form>
         </motion.div>
 
-        {/* Social Connect */}
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -162,7 +157,6 @@ export default function Footer() {
             />
           </h3>
 
-          {/* Hover bounce icons */}
           <div className="flex gap-5 text-2xl text-gray-500 mb-6">
             {["🌐", "🐦", "📘", "🔗"].map((icon, i) => (
               <motion.a
@@ -177,7 +171,6 @@ export default function Footer() {
             ))}
           </div>
 
-          {/* Contact Details */}
           <motion.div
             className="space-y-2"
             initial={{ opacity: 0 }}

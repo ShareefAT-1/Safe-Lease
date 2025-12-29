@@ -14,25 +14,14 @@ const {
 
 const authMiddleware = require("../middleware/authMiddleware");
 const roleMiddleware = require("../middleware/roleMiddleware");
+const upload = require("../middleware/uploadMiddleware");
 
-// =======================
-// SEARCH (PUBLIC)
-// =======================
 router.get("/search", searchProperties);
 
-// =======================
-// GET ALL PROPERTIES (PUBLIC)
-// =======================
 router.get("/", getAllProperties);
 
-// =======================
-// GET PROPERTY BY ID (PUBLIC)
-// =======================
 router.get("/:id", getPropertyById);
 
-// =======================
-// LANDLORD ROUTES
-// =======================
 router.get(
   "/owner/:userId",
   authMiddleware,
@@ -42,13 +31,11 @@ router.get(
 
 router.get("/landlord/:landlordId", getPropertiesByLandlordPublic);
 
-// =======================
-// CREATE / UPDATE / DELETE
-// =======================
 router.post(
   "/",
   authMiddleware,
   roleMiddleware("landlord"),
+  upload.array("images", 5),
   createProperty
 );
 
@@ -56,8 +43,10 @@ router.put(
   "/:id",
   authMiddleware,
   roleMiddleware("landlord"),
+  upload.array("images", 5),
   updateProperty
 );
+
 
 router.delete(
   "/:id",

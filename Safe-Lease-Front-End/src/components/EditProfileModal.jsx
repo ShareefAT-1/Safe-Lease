@@ -22,13 +22,11 @@ const EditProfileModal = ({ user, onClose, onSaved }) => {
   const [selectedPreset, setSelectedPreset] = useState(null);
   const [saving, setSaving] = useState(false);
 
-  // 🔄 Sync modal fields when user updates (auth refresh, navbar sync)
   useEffect(() => {
     setName(user.name || "");
     setBio(user.bio || "");
   }, [user]);
 
-  // 🧹 Cleanup preview URL to prevent memory leaks
   useEffect(() => {
     if (!file) return;
 
@@ -115,7 +113,6 @@ const EditProfileModal = ({ user, onClose, onSaved }) => {
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 p-4">
       <div className="w-full max-w-2xl rounded-2xl bg-[#0c1322] border border-white/6 p-6">
-        {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xl font-semibold text-white">Edit Profile</h3>
           <button onClick={onClose} className="text-white/80">
@@ -123,9 +120,7 @@ const EditProfileModal = ({ user, onClose, onSaved }) => {
           </button>
         </div>
 
-        {/* Content */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Avatar column */}
           <div>
             <label className="block text-sm text-slate-300 mb-2">
               Display Avatar
@@ -186,7 +181,6 @@ const EditProfileModal = ({ user, onClose, onSaved }) => {
             </div>
           </div>
 
-          {/* Info column */}
           <div className="md:col-span-2 space-y-4">
             <div>
               <label className="block text-sm text-slate-300">Name</label>

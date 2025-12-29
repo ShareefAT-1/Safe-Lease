@@ -1,10 +1,6 @@
-// src/components/RoleBadge.jsx
 import React from "react";
 
-/**
- * RoleBadge: small capsule showing user role with color + glow
- * Supports: tenant, landlord, admin, moderator (fallback)
- */
+
 const RoleBadge = ({ role }) => {
   const r = (role || "").toLowerCase();
   let label = role || "user";

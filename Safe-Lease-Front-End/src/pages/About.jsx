@@ -1,6 +1,6 @@
 import React from "react";
 import { motion } from "framer-motion";
-import bg from "../assets/pexels-timrael-2474690.jpg";   // ✅ IMPORTANT
+import bg from "../assets/pexels-timrael-2474690.jpg";   
 
 const featureCards = [
   {
@@ -25,24 +25,21 @@ export default function About() {
     <main className="relative min-h-screen text-gray-100">
 
       <div className="absolute inset-0 -z-10 overflow-hidden">
-        {/* Background Image */}
         <div
           className="w-full h-full bg-cover bg-center"
           style={{
             backgroundImage:
               'url("https://img.freepik.com/free-photo/mesmerizing-scenery-green-mountains-with-cloudy-sky-surface_181624-27189.jpg?uid=R201428338&ga=GA1.1.944180072.1748070275&semt=ais_hybrid&w=740")',
-            transform: "scale(1.15)",        // zoom for cinematic effect
-            filter: "brightness(65%)",        // darken to make text readable
+            transform: "scale(1.15)",        
+            filter: "brightness(65%)",        
           }}
         />
 
-        {/* Gradient overlay for depth */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />\
       </div>
 
 
       <section className="max-w-6xl mx-auto px-6 py-28">
-        {/* Hero / Intro */}
         <motion.header
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -60,7 +57,6 @@ export default function About() {
             and two-sided approval workflows so landlords and tenants can sign agreements with confidence.
           </p>
 
-          {/* USP strip + CTA */}
           <div className="mt-8 flex flex-col sm:flex-row sm:items-center gap-4">
             <div className="flex items-center gap-3 bg-white/5 p-3 rounded-lg border border-white/10">
               <div className="text-2xl">🧪</div>
@@ -92,7 +88,6 @@ export default function About() {
           </div>
         </motion.header>
 
-        {/* Feature cards */}
         <motion.div
           initial="hidden"
           whileInView="show"
@@ -117,7 +112,6 @@ export default function About() {
           ))}
         </motion.div>
 
-        {/* Stats / Trust row */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -138,7 +132,6 @@ export default function About() {
           </div>
         </motion.div>
 
-        {/* Testimonial or short timeline */}
         <div className="mt-14 grid grid-cols-1 md:grid-cols-2 gap-6">
           <motion.blockquote
             initial={{ opacity: 0, x: -30 }}

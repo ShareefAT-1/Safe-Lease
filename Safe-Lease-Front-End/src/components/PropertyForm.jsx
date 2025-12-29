@@ -18,7 +18,8 @@ const PropertyForm = () => {
         listingType: '',
     });
 
-    const [image, setImage] = useState(null);
+    const [images, setImages] = useState([]);
+
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
 
@@ -28,58 +29,55 @@ const PropertyForm = () => {
     };
 
     const handleImageChange = (e) => {
-        setImage(e.target.files[0]);
+        setImages(Array.from(e.target.files));
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
 
         const formData = new FormData();
-        formData.append('title', propertyData.title);
-        formData.append('description', propertyData.description);
-        formData.append('address', propertyData.address);
-        formData.append('city', propertyData.city);
-        formData.append('state', propertyData.state);
-        formData.append('zipCode', propertyData.zipCode);
-        formData.append('price', propertyData.price);
-        formData.append('propertyType', propertyData.propertyType);
-        formData.append('bedrooms', propertyData.bedrooms);
-        formData.append('bathrooms', propertyData.bathrooms);
-        formData.append('area', propertyData.area);
-        formData.append('available', propertyData.available);
-        formData.append('listingType', propertyData.listingType);
-        if (image) formData.append('image', image);
+        formData.append("title", propertyData.title);
+        formData.append("description", propertyData.description);
+        formData.append("address", propertyData.address);
+        formData.append("city", propertyData.city);
+        formData.append("state", propertyData.state);
+        formData.append("zipCode", propertyData.zipCode);
+        formData.append("price", propertyData.price);
+        formData.append("propertyType", propertyData.propertyType);
+        formData.append("bedrooms", propertyData.bedrooms);
+        formData.append("bathrooms", propertyData.bathrooms);
+        formData.append("area", propertyData.area);
+        formData.append("available", propertyData.available);
+        formData.append("listingType", propertyData.listingType);
+
+        if (images.length > 0) {
+            images.forEach((img) => {
+                formData.append("images", img);
+            });
+        }
+
 
         try {
             setLoading(true);
 
-            // --- CORRECTED LINE HERE ---
-            const token = localStorage.getItem('token'); // <--- Changed from 'user_access_token' to 'token'
+            const token = localStorage.getItem("token");
 
-            if (!token) {
-                setMessage('Authentication token not found. Please log in.');
-                setLoading(false);
-                return;
-            }
-
-            const headers = {
-                'Content-Type': 'multipart/form-data',
-                'Authorization': `Bearer ${token}`,
-            };
-
-            const response = await axios.post('http://localhost:4000/properties/create', formData, {
-                headers: headers,
+            axios.post("http://localhost:4000/api/properties", formData, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
             });
 
-            setMessage(response.data.msg);
+
+            setMessage("Property created successfully");
             setLoading(false);
-        } catch (error) {
+        } catch (err) {
             setLoading(false);
-            // It's good practice to log the actual error for debugging
-            console.error('Error creating property:', error.response ? error.response.data : error.message);
-            setMessage('Error creating property');
+            setMessage("Error creating property");
+            console.error(err);
         }
     };
+    ;
 
     return (
         <div className="max-w-4xl mx-auto p-8 bg-white rounded-lg shadow-lg">
@@ -230,10 +228,12 @@ const PropertyForm = () => {
                 </select>
                 <input
                     type="file"
+                    multiple
                     onChange={handleImageChange}
                     accept=".jpg,.jpeg,.png"
                     className="w-full p-4 mb-6 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500"
                 />
+
                 <button
                     type="submit"
                     disabled={loading}

@@ -1,4 +1,3 @@
-// src/components/ChatComponent.jsx
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { toast } from "react-hot-toast";
@@ -16,10 +15,8 @@ const ChatComponent = ({ recipientId, embedMode = true }) => {
   const messagesEndRef = useRef(null);
   const scrollContainerRef = useRef(null);
 
-  // Ensure proper socket URL format
   const SOCKET_URL = (axiosbase?.defaults?.baseURL || "").replace(/\/$/, "");
 
-  // Build conversation ID based on sorted IDs
   useEffect(() => {
     if (user?.id && recipientId) {
       const sorted = [user.id, recipientId].sort();
@@ -29,14 +26,12 @@ const ChatComponent = ({ recipientId, embedMode = true }) => {
     }
   }, [user, recipientId]);
 
-  // Smooth scroll to bottom
   const scrollToBottom = useCallback(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, []);
 
-  // Socket connection handler
   useEffect(() => {
     if (!isAuthenticated || authLoading || !backendToken || !conversationId) {
       if (socketRef.current) {
@@ -97,7 +92,6 @@ const ChatComponent = ({ recipientId, embedMode = true }) => {
     scrollToBottom();
   }, [messages, scrollToBottom]);
 
-  // SEND MESSAGE — NO LOCAL MESSAGE INSERTION
   const handleSendMessage = (e) => {
     e.preventDefault();
 
@@ -114,17 +108,15 @@ const ChatComponent = ({ recipientId, embedMode = true }) => {
       senderId: user.id,
     });
 
-    setNewMessage(""); // No optimistic UI — server will echo back
+    setNewMessage(""); 
   };
 
-  // Format sender name
   const getSenderDisplayName = (sender) => {
     if (!sender) return "Unknown";
     if (user && user.id === sender._id) return user.username || "You";
     return sender.name || sender.username || `User ${String(sender._id).slice(0, 6)}`;
   };
 
-  // Guards
   if (authLoading) return <div className="p-4 text-center text-white">Loading chat...</div>;
   if (!isAuthenticated) return <div className="p-4 text-center text-red-400">Log in to chat.</div>;
   if (!conversationId) return <div className="p-4 text-center text-gray-400">Preparing chat…</div>;
@@ -132,7 +124,6 @@ const ChatComponent = ({ recipientId, embedMode = true }) => {
 
   return (
     <div className={`flex flex-col h-full ${embedMode ? "" : "min-h-[400px]"}`}>
-      {/* Messages */}
       <div
         ref={scrollContainerRef}
         className="flex-1 overflow-y-auto px-4 py-3 space-y-3 custom-scrollbar"
@@ -172,7 +163,6 @@ const ChatComponent = ({ recipientId, embedMode = true }) => {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input box */}
       <form onSubmit={handleSendMessage} className="p-3 border-t bg-transparent">
         <div className="flex gap-2">
           <input

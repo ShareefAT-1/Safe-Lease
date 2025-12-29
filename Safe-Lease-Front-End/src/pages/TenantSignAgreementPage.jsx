@@ -1,5 +1,3 @@
-// src/pages/TenantSignAgreementPage.jsx
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
@@ -10,7 +8,7 @@ import { FaFileUpload, FaSignature, FaSpinner } from 'react-icons/fa';
 const TenantSignAgreementPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { backendToken } = useAuth(); // FIX: Removed unused 'user' variable
+  const { backendToken } = useAuth();
 
   const [agreement, setAgreement] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -29,7 +27,7 @@ const TenantSignAgreementPage = () => {
           headers: { Authorization: `Bearer ${backendToken}` },
         });
         setAgreement(res.data.agreement);
-      } catch (err) { // FIX: 'err' is now used in the console.error below
+      } catch (err) { 
         console.error("Error fetching agreement details:", err);
         setError('Failed to fetch agreement details.');
         toast.error('Failed to fetch agreement details.');

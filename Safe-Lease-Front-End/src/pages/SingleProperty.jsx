@@ -1,4 +1,3 @@
-// src/pages/SingleProperty.jsx
 import React, { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import axiosbase from "../config/axios-config";
@@ -24,7 +23,6 @@ import { useAuth } from "../hooks/useAuth";
 import ChatComponent from "../components/ChatComponent";
 import Globe3D from "../components/Globe3D";
 
-// Fix leaflet icon issue
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl:
@@ -100,7 +98,6 @@ const SingleProperty = () => {
     fetchPropertyDetails();
   }, [id]);
 
-  // Lock & unlock scroll on chat open
   useEffect(() => {
     document.body.style.overflow = showChat ? "hidden" : "";
     return () => {
@@ -168,7 +165,6 @@ const SingleProperty = () => {
     <section className="min-h-screen bg-[#0d1224] pt-10 pb-20 px-6 md:px-12 text-white">
       <div className="max-w-7xl mx-auto bg-[#11172b] rounded-3xl shadow-[0_0_35px_rgba(0,0,0,0.4)] border border-[#1f2a47] overflow-hidden">
 
-        {/* Hero */}
         <div className="relative h-[420px] md:h-[620px] overflow-hidden group">
           <img
             src={displayImageUrl}
@@ -180,13 +176,10 @@ const SingleProperty = () => {
           </div>
         </div>
 
-        {/* Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 p-10">
 
-          {/* Left content */}
           <div className="lg:col-span-2 space-y-10">
 
-            {/* Price & availability */}
             <div className="flex justify-between border-b border-[#1f2a47] pb-6">
               <div>
                 <h2 className="text-5xl font-extrabold text-cyan-400">
@@ -204,7 +197,6 @@ const SingleProperty = () => {
               </div>
             </div>
 
-            {/* Details */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
               <Detail label="Location" value={fullLocation} icon={<FaMapMarkerAlt />} />
               <Detail label="Property Type" value={property.propertyType || property.type || "N/A"} icon={<MdOutlineHouse />} />
@@ -214,7 +206,6 @@ const SingleProperty = () => {
               <Detail label="Bathrooms" value={property.bathrooms || property.baths || "N/A"} icon={<FaBath />} />
             </div>
 
-            {/* Map */}
             {mapCenter && (
               <div className="bg-[#121a33] p-6 rounded-2xl border border-[#243158]">
                 <div className="flex justify-between items-center mb-4">
@@ -235,7 +226,6 @@ const SingleProperty = () => {
             )}
           </div>
 
-          {/* Right column */}
           <div className="space-y-6">
 
             <div className="bg-[#121a33] p-8 rounded-2xl border border-[#243158] text-center">
@@ -305,12 +295,10 @@ const SingleProperty = () => {
         </div>
       </div>
 
-      {/* CHAT MODAL */}
       {showChat && isAuthenticated && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999] p-4">
           <div className="bg-[#11172b] rounded-xl w-full max-w-lg h-[85vh] flex flex-col overflow-hidden shadow-2xl border border-cyan-700/40">
 
-            {/* Header */}
             <div className="p-4 bg-cyan-700 text-white flex justify-between items-center">
               <h2 className="text-xl font-semibold">Chat with {displayLandlordName}</h2>
 

@@ -7,16 +7,13 @@ const Home = () => {
   return (
     <section className="relative text-white overflow-hidden">
       
-      {/* Background */}
       <div
         className="absolute inset-0 bg-cover bg-center brightness-50 scale-125"
         style={{ backgroundImage: `url(${bg})` }}
       ></div>
 
-      {/* Gradient overlay */}
       <div className="absolute inset-0 bg-black/50"></div>
 
-      {/* ⚪ BUBBLE RISE ANIMATION LAYER */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {[...Array(28)].map((_, i) => (
           <motion.span
@@ -46,7 +43,6 @@ const Home = () => {
 
       <div className="relative z-10 max-w-6xl mx-auto px-4 py-24 md:py-32 flex flex-col md:flex-row items-center gap-14">
 
-        {/* LEFT */}
         <motion.div
           initial={{ opacity: 0, x: -60 }}
           animate={{ opacity: 1, x: 0 }}
@@ -62,7 +58,6 @@ const Home = () => {
             <span className="text-xs tracking-wider font-medium">SAFESIGN ENGINE • LIVE</span>
           </motion.div>
 
-          {/* TITLE */}
           <h1 className="mt-6 text-4xl sm:text-5xl lg:text-[4.8rem] font-black leading-[1.1] tracking-tight drop-shadow-2xl">
             Lease the <motion.span
               className="text-blue-400"
@@ -80,7 +75,6 @@ const Home = () => {
             landlords and tenants — all in one trusted ecosystem.
           </p>
 
-          {/* BUTTON ROW */}
           <div className="mt-8 flex gap-4 flex-wrap items-center justify-center md:justify-start">
             <motion.button
               whileHover={{ scale: 1.08, boxShadow: "0 0 40px #3b82f6" }}
@@ -100,7 +94,6 @@ const Home = () => {
           </div>
         </motion.div>
 
-        {/* RIGHT GLASS PANEL */}
         <motion.div
           initial={{ opacity: 0, x: 60 }}
           animate={{ opacity: 1, x: 0 }}
@@ -136,7 +129,6 @@ const Home = () => {
               </div>
             </div>
 
-            {/* MINI STATS */}
             <div className="grid grid-cols-3 gap-2 text-center mb-3">
               {[
                 { label: "Start", value: "01 Jan" },
@@ -164,7 +156,6 @@ const Home = () => {
         </motion.div>
       </div>
 
-      {/* FEATURES SECTION DROPUP */}
       <motion.div
         initial={{ opacity: 0, y: 90, filter: "blur(6px)" }}
         whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}

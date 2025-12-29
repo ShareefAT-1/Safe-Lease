@@ -85,7 +85,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   // =============================
-  // 🔥 REFRESH USER (PROFILE UPDATE FIX)
+  //  REFRESH USER (PROFILE UPDATE FIX)
   // =============================
   const refreshUser = (updatedUser) => {
     if (!updatedUser) return;
@@ -97,7 +97,6 @@ export const AuthProvider = ({ children }) => {
     );
     localStorage.setItem("profilePic", updatedUser.profilePic || "");
 
-    // Update React state (navbar updates instantly)
     setUser((prev) => ({
       ...prev,
       username: updatedUser.name || prev?.username,
@@ -105,9 +104,7 @@ export const AuthProvider = ({ children }) => {
     }));
   };
 
-  // =============================
-  // INIT
-  // =============================
+ 
   useEffect(() => {
     loadUserFromLocalStorage();
   }, [loadUserFromLocalStorage]);
@@ -126,7 +123,7 @@ export const AuthProvider = ({ children }) => {
     backendToken,
     login: saveAuthData,
     logout: clearAuthData,
-    refreshUser, // ✅ THIS FIXES NAVBAR
+    refreshUser, 
     getBackendToken,
   };
 

@@ -1,11 +1,9 @@
-// src/components/TenantRequests.jsx
-
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import api from '../services/api';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import axiosbase from '../config/axios-config'; // --- FIX: ADDED THIS IMPORT ---
+import axiosbase from '../config/axios-config';
 
 export default function TenantRequests() {
   const { user, isAuthenticated } = useAuth();

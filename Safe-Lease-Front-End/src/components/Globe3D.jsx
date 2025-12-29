@@ -1,5 +1,3 @@
-// src/components/Globe3D.jsx
-
 import React, { useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
@@ -7,10 +5,6 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import earthDayMap from '../assets/textures/earth_daymap.jpg';
 import earthClouds from '../assets/textures/earth_clouds.jpg';
 
-/**
- * Converts latitude and longitude to 3D x,y,z coordinates on a sphere of given radius
- * Latitude and longitude are in degrees
- */
 function latLonToXYZ(lat, lon, radius = 1.03) {
   const phi = (90 - lat) * (Math.PI / 180);
   const theta = (lon + 180) * (Math.PI / 180);
@@ -26,15 +20,13 @@ const Globe3D = ({ latitude = 0, longitude = 0 }) => {
   const mountRef = useRef(null);
 
   useEffect(() => {
-    // Log imported asset URLs to verify bundler resolves them
     console.log('Earth Day Map URL:', earthDayMap);
     console.log('Earth Clouds URL:', earthClouds);
 
     if (!mountRef.current) return;
 
-    // === THREE.js Setup ===
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x1a202c); // nice dark bg
+    scene.background = new THREE.Color(0x1a202c); 
 
     const camera = new THREE.PerspectiveCamera(
       60,
@@ -50,7 +42,6 @@ const Globe3D = ({ latitude = 0, longitude = 0 }) => {
     renderer.setClearAlpha(0);
     mountRef.current.appendChild(renderer.domElement);
 
-    // Lights
     const ambientLight = new THREE.AmbientLight(0xffffff, 1.1);
     scene.add(ambientLight);
 
@@ -58,14 +49,11 @@ const Globe3D = ({ latitude = 0, longitude = 0 }) => {
     dirLight.position.set(5, 3, 5);
     scene.add(dirLight);
 
-    // Texture loader
     const textureLoader = new THREE.TextureLoader();
 
-    // Load textures from imported assets
     const earthTexture = textureLoader.load(earthDayMap);
     const cloudTexture = textureLoader.load(earthClouds);
 
-    // Earth Sphere
     const earthGeometry = new THREE.SphereGeometry(1, 64, 64);
     const earthMaterial = new THREE.MeshPhongMaterial({
       map: earthTexture,
@@ -75,7 +63,6 @@ const Globe3D = ({ latitude = 0, longitude = 0 }) => {
     const globe = new THREE.Mesh(earthGeometry, earthMaterial);
     scene.add(globe);
 
-    // Cloud Sphere (slightly larger for layering)
     const cloudGeometry = new THREE.SphereGeometry(1.02, 64, 64);
     const cloudMaterial = new THREE.MeshPhongMaterial({
       map: cloudTexture,
@@ -87,15 +74,13 @@ const Globe3D = ({ latitude = 0, longitude = 0 }) => {
     const clouds = new THREE.Mesh(cloudGeometry, cloudMaterial);
     scene.add(clouds);
 
-    // === Add Location Marker === //
     const { x, y, z } = latLonToXYZ(latitude, longitude, 1.05);
     const markerGeometry = new THREE.SphereGeometry(0.03, 32, 32);
-    const markerMaterial = new THREE.MeshBasicMaterial({ color: 0xff3040 }); // Bright red marker
+    const markerMaterial = new THREE.MeshBasicMaterial({ color: 0xff3040 }); 
     const marker = new THREE.Mesh(markerGeometry, markerMaterial);
     marker.position.set(x, y, z);
     scene.add(marker);
 
-    // Controls
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.10;
@@ -103,7 +88,6 @@ const Globe3D = ({ latitude = 0, longitude = 0 }) => {
     controls.minDistance = 2;
     controls.maxDistance = 4;
 
-    // Animation loop
     let reqId;
     const animate = () => {
       reqId = requestAnimationFrame(animate);
@@ -114,7 +98,6 @@ const Globe3D = ({ latitude = 0, longitude = 0 }) => {
     };
     animate();
 
-    // Handle window resize
     const onResize = () => {
       if (!mountRef.current) return;
       camera.aspect = mountRef.current.clientWidth / mountRef.current.clientHeight;
@@ -123,7 +106,6 @@ const Globe3D = ({ latitude = 0, longitude = 0 }) => {
     };
     window.addEventListener('resize', onResize);
 
-    // Cleanup on unmount
     const mountNode = mountRef.current;
     return () => {
       cancelAnimationFrame(reqId);
@@ -145,7 +127,6 @@ const Globe3D = ({ latitude = 0, longitude = 0 }) => {
       className="w-full h-96 rounded-2xl overflow-hidden shadow-2xl"
       style={{ minHeight: '384px', backgroundColor: '#1a202c' }}
     >
-      {/* 3D Globe renders here */}
     </div>
   );
 };

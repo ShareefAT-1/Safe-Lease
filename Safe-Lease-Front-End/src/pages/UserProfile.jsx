@@ -1,4 +1,3 @@
-// src/pages/UserProfile.jsx
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axiosbase from "../config/axios-config";
@@ -34,7 +33,6 @@ const UserProfile = () => {
   }, [id]);
 
   const handleUpdateLocal = (updated) => {
-    // Called after successful update in modal — update local UI
     setUser((prev) => ({ ...prev, ...updated }));
     toast.success("Profile updated");
   };

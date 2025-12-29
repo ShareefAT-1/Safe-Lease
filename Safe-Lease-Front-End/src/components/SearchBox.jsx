@@ -45,7 +45,7 @@ const SearchBox = () => {
 
   return (
     <div className="relative w-[340px]">
-      {/* 🌈 RGB OUTLINE */}
+
       <AnimatePresence>
         {open && (
           <motion.div
@@ -74,7 +74,6 @@ const SearchBox = () => {
         )}
       </AnimatePresence>
 
-      {/* 🔍 SEARCH INPUT */}
       <div className="relative z-10 flex items-center gap-2 px-4 py-2.5 rounded-full bg-white shadow-sm">
         <FaSearch className="text-blue-500 text-sm" />
         <input
@@ -92,7 +91,6 @@ const SearchBox = () => {
         />
       </div>
 
-      {/* 📦 DROPDOWN */}
       <AnimatePresence>
        {open && query && (
   <motion.div
@@ -102,7 +100,6 @@ const SearchBox = () => {
     transition={{ duration: 0.2 }}
     className="absolute z-50 mt-3 w-full"
   >
-    {/* 🌈 RGB BORDER */}
     <motion.div
       className="absolute -inset-[1px] rounded-xl pointer-events-none"
       style={{
@@ -121,7 +118,6 @@ const SearchBox = () => {
       }}
     />
 
-    {/* 🧊 ACTUAL DROPDOWN (ONLY scrollable element) */}
     <div
       className="
         relative

@@ -67,8 +67,8 @@ const LandlordRequests = () => {
         navigate(`/agreements/finalize/${agreement._id}`, {
             state: {
                 agreementData: {
-                    property: agreement.property._id, // This is an ID string, which is correct
-                    landlord: user.id, // --- CRITICAL FIX: Use the current logged-in landlord's ID
+                    property: agreement.property._id, 
+                    landlord: user.id, 
                     tenant: agreement.tenant._id,
                     startDate: agreement.requestedTerms.moveInDate.split("T")[0],
                     rentAmount: agreement.requestedTerms.rent,
@@ -105,8 +105,8 @@ const LandlordRequests = () => {
         navigate(`/agreements/finalize/${agreement._id}`, {
             state: {
                 agreementData: {
-                    property: agreement.property._id, // This is an ID string, which is correct
-                    landlord: user.id, // --- CRITICAL FIX: Use the current logged-in landlord's ID
+                    property: agreement.property._id,
+                    landlord: user.id, 
                     tenant: agreement.tenant._id,
                     startDate: currentDisplayedTerms.moveInDate
                         ? new Date(currentDisplayedTerms.moveInDate).toISOString().split("T")[0]

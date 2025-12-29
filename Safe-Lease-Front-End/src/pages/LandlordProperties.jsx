@@ -53,7 +53,6 @@ const LandlordProperties = () => {
                                 key={property._id}
                                 className="bg-[#0c1322] border border-white/6 rounded-2xl overflow-hidden hover:border-cyan-400/40 transition"
                             >
-                                {/* Image */}
                                 <div className="relative h-48 overflow-hidden rounded-t-2xl">
                                     <img
                                         src={
@@ -70,7 +69,6 @@ const LandlordProperties = () => {
                                         className="w-full h-full object-cover"
                                     />
 
-                                    {/* Title overlay */}
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex items-end p-4">
                                         <h3 className="text-lg font-semibold text-white drop-shadow">
                                             {property.title || property.propertyName || "Untitled Property"}
@@ -80,7 +78,6 @@ const LandlordProperties = () => {
 
 
 
-                                {/* Info */}
                                 <div className="p-4">
 
                                     <p className="text-sm text-slate-400">

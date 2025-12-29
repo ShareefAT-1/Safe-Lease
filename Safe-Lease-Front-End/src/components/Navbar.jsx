@@ -1,5 +1,3 @@
-// frontend/src/components/Navbar.jsx
-
 import React from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import SearchBox from "./SearchBox";
@@ -20,14 +18,12 @@ export default function Navbar() {
   return (
     <nav className="flex justify-between items-center px-6 py-4 bg-white shadow-md text-gray-700 z-50 sticky top-0 w-full">
       
-      {/* Logo */}
       <NavLink to="/" className="text-2xl font-extrabold text-blue-700 hover:text-blue-800 transition duration-300">
         SafeLease
       </NavLink>
 
       <ul className="flex items-center space-x-6">
 
-        {/* Home */}
         <li>
           <NavLink
             to="/"
@@ -39,7 +35,6 @@ export default function Navbar() {
           </NavLink>
         </li>
 
-        {/* About */}
         <li>
           <NavLink
             to="/about"
@@ -51,7 +46,6 @@ export default function Navbar() {
           </NavLink>
         </li>
 
-        {/* Properties */}
         <li>
           <NavLink
             to="/properties"
@@ -63,7 +57,6 @@ export default function Navbar() {
           </NavLink>
         </li>
 
-        {/* Create property visible only to landlords */}
         {isAuthenticated && user?.role === "landlord" && (
           <li>
             <NavLink
@@ -77,12 +70,10 @@ export default function Navbar() {
           </li>
         )}
 
-        {/* Search box */}
         <li>
           <SearchBox />
         </li>
 
-        {/* If NOT authenticated → show Login & Register */}
         {!isAuthenticated ? (
           <>
             <li>
@@ -109,7 +100,6 @@ export default function Navbar() {
           </>
         ) : (
           <>
-            {/* Logged-in user info */}
             {user && (
               <li className="flex items-center space-x-2 font-semibold text-blue-600">
                 {user.profilePic && (
@@ -123,7 +113,6 @@ export default function Navbar() {
               </li>
             )}
 
-            {/* ⭐ MY PROFILE BUTTON (new universal button) */}
             <li>
               <NavLink
                 to={`/profile/${user?.id}`}
@@ -133,7 +122,6 @@ export default function Navbar() {
               </NavLink>
             </li>
 
-            {/* Landlord routes */}
             {user?.role === "landlord" && (
               <>
                 <li>
@@ -156,7 +144,6 @@ export default function Navbar() {
               </>
             )}
 
-            {/* Tenant routes */}
             {user?.role === "tenant" && (
               <li>
                 <NavLink
@@ -168,7 +155,6 @@ export default function Navbar() {
               </li>
             )}
 
-            {/* Logout */}
             <li>
               <button
                 onClick={handleLogout}

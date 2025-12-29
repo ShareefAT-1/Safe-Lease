@@ -1,5 +1,3 @@
-// src/App.jsx
-
 import React from "react";
 import { Route, Routes } from "react-router-dom";
 import Navbar from "./components/Navbar";
@@ -23,7 +21,6 @@ import MyProperties from "./pages/MyProperties";
 import LandlordProperties from "./pages/LandlordProperties";
 import TenantChatsPage from "./pages/TenantChatsPage";
 
-// --- NEW IMPORT FOR THE TENANT SIGNING PAGE ---
 import TenantSignAgreementPage from "./pages/TenantSignAgreementPage";
 
 function App() {
@@ -55,7 +52,6 @@ function App() {
         />
 
 
-        {/* --- NEW ROUTE FOR THE TENANT TO SIGN --- */}
         <Route path="/agreement/sign/:id" element={<TenantSignAgreementPage />} />
       </Routes>
       <Footer />

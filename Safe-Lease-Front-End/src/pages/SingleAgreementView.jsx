@@ -1,4 +1,3 @@
-// frontend/src/pages/SingleAgreementView.jsx (or components/Agreement/SingleAgreementView.jsx)
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axiosbase from '../config/axios-config';
@@ -21,7 +20,6 @@ export default function SingleAgreementView() {
         }
         setLoading(true);
         const res = await axiosbase.get(`/api/agreements/${id}`); 
-        // --- CRITICAL FIX HERE: Access res.data.agreement ---
         setAgreement(res.data.agreement); 
         setLoading(false);
       } catch (err) {
