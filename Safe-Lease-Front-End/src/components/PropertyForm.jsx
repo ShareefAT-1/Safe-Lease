@@ -1,249 +1,170 @@
-import React, { useState } from 'react';
-import axios from 'axios';
+import React, { useState } from "react";
+import axiosbase from "../config/axios-config";
 
-const PropertyForm = () => {
-    const [propertyData, setPropertyData] = useState({
-        title: '',
-        description: '',
-        address: '',
-        city: '',
-        state: '',
-        zipCode: '',
-        price: '',
-        propertyType: '',
-        bedrooms: '',
-        bathrooms: '',
-        area: '',
+export default function PropertyForm() {
+  const [propertyData, setPropertyData] = useState({
+    title: "",
+    description: "",
+    address: "",
+    city: "",
+    state: "",
+    zipCode: "",
+    price: "",
+    propertyType: "",
+    bedrooms: "",
+    bathrooms: "",
+    area: "",
+    available: true,
+    listingType: "",
+  });
+
+  const [images, setImages] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setPropertyData((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+  };
+
+  const handleImageChange = (e) => {
+    setImages(e.target.files);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage("");
+
+    try {
+      const formData = new FormData();
+
+      Object.entries(propertyData).forEach(([key, value]) => {
+        formData.append(key, value);
+      });
+
+      for (let i = 0; i < images.length; i++) {
+        formData.append("images", images[i]);
+      }
+
+      const token = localStorage.getItem("token");
+
+      await axiosbase.post("/api/properties", formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      setMessage("Property created successfully");
+      setPropertyData({
+        title: "",
+        description: "",
+        address: "",
+        city: "",
+        state: "",
+        zipCode: "",
+        price: "",
+        propertyType: "",
+        bedrooms: "",
+        bathrooms: "",
+        area: "",
         available: true,
-        listingType: '',
-    });
+        listingType: "",
+      });
+      setImages([]);
+    } catch (err) {
+      console.error(err);
+      setMessage("Failed to create property");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const [images, setImages] = useState([]);
+  return (
+    <>
+      <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_#071331,_#041028)] flex items-center justify-center px-4">
+        <form
+          onSubmit={handleSubmit}
+          className="w-full max-w-3xl bg-slate-900 border border-white/10 rounded-2xl p-8 shadow-xl"
+        >
+          <h2 className="text-3xl font-bold text-white mb-6 text-center">
+            Create a New Property
+          </h2>
 
-    const [loading, setLoading] = useState(false);
-    const [message, setMessage] = useState('');
+          {message && (
+            <p className="text-center mb-4 text-sm text-emerald-400">
+              {message}
+            </p>
+          )}
 
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setPropertyData({ ...propertyData, [name]: value });
-    };
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input className="input" name="title" value={propertyData.title} onChange={handleChange} placeholder="Title" />
+            <input className="input" name="description" value={propertyData.description} onChange={handleChange} placeholder="Description" />
+            <input className="input" name="address" value={propertyData.address} onChange={handleChange} placeholder="Address" />
+            <input className="input" name="city" value={propertyData.city} onChange={handleChange} placeholder="City" />
+            <input className="input" name="state" value={propertyData.state} onChange={handleChange} placeholder="State" />
+            <input className="input" name="zipCode" value={propertyData.zipCode} onChange={handleChange} placeholder="Zip Code" />
+            <input className="input" type="number" name="price" value={propertyData.price} onChange={handleChange} placeholder="Price" />
+            <input className="input" type="number" name="area" value={propertyData.area} onChange={handleChange} placeholder="Area (sqft)" />
+            <input className="input" type="number" name="bedrooms" value={propertyData.bedrooms} onChange={handleChange} placeholder="Bedrooms" />
+            <input className="input" type="number" name="bathrooms" value={propertyData.bathrooms} onChange={handleChange} placeholder="Bathrooms" />
 
-    const handleImageChange = (e) => {
-        setImages(Array.from(e.target.files));
-    };
+            <select className="input" name="propertyType" value={propertyData.propertyType} onChange={handleChange}>
+              <option value="">Property Type</option>
+              <option value="Apartment">Apartment</option>
+              <option value="House">House</option>
+              <option value="Villa">Villa</option>
+            </select>
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+            <select className="input" name="listingType" value={propertyData.listingType} onChange={handleChange}>
+              <option value="">Listing Type</option>
+              <option value="Sale">Sale</option>
+              <option value="Lease">Lease</option>
+            </select>
+          </div>
 
-        const formData = new FormData();
-        formData.append("title", propertyData.title);
-        formData.append("description", propertyData.description);
-        formData.append("address", propertyData.address);
-        formData.append("city", propertyData.city);
-        formData.append("state", propertyData.state);
-        formData.append("zipCode", propertyData.zipCode);
-        formData.append("price", propertyData.price);
-        formData.append("propertyType", propertyData.propertyType);
-        formData.append("bedrooms", propertyData.bedrooms);
-        formData.append("bathrooms", propertyData.bathrooms);
-        formData.append("area", propertyData.area);
-        formData.append("available", propertyData.available);
-        formData.append("listingType", propertyData.listingType);
+          <label className="flex items-center gap-2 text-slate-300 mt-4">
+            <input type="checkbox" name="available" checked={propertyData.available} onChange={handleChange} />
+            Available
+          </label>
 
-        if (images.length > 0) {
-            images.forEach((img) => {
-                formData.append("images", img);
-            });
+          <input
+            type="file"
+            multiple
+            accept=".jpg,.jpeg,.png"
+            onChange={handleImageChange}
+            className="mt-4 text-slate-300"
+          />
+
+          <button
+            disabled={loading}
+            className="mt-6 w-full py-3 rounded-xl bg-emerald-500 text-slate-900 font-bold hover:bg-emerald-400 transition"
+          >
+            {loading ? "Uploading..." : "Create Property"}
+          </button>
+        </form>
+      </div>
+
+      <style>{`
+        .input {
+          width: 100%;
+          padding: 14px;
+          border-radius: 12px;
+          background: rgba(255,255,255,0.06);
+          border: 1px solid rgba(255,255,255,0.1);
+          outline: none;
+          color: white;
         }
-
-
-        try {
-            setLoading(true);
-
-            const token = localStorage.getItem("token");
-
-            axios.post("http://localhost:4000/api/properties", formData, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
-
-
-            setMessage("Property created successfully");
-            setLoading(false);
-        } catch (err) {
-            setLoading(false);
-            setMessage("Error creating property");
-            console.error(err);
+        .input::placeholder {
+          color: rgba(255,255,255,0.5);
         }
-    };
-    ;
-
-    return (
-        <div className="max-w-4xl mx-auto p-8 bg-white rounded-lg shadow-lg">
-            <h2 className="text-3xl font-bold text-center mb-6 text-gray-800">Create a New Property</h2>
-            {message && (
-                <p className={`text-center text-sm font-semibold ${message.includes('Error') ? 'text-red-600' : 'text-green-600'}`}>
-                    {message}
-                </p>
-            )}
-            <form onSubmit={handleSubmit}>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <input
-                        type="text"
-                        name="title"
-                        value={propertyData.title}
-                        onChange={handleChange}
-                        placeholder="Title"
-                        required
-                        className="w-full p-4 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                    />
-                    <input
-                        type="text"
-                        name="description"
-                        value={propertyData.description}
-                        onChange={handleChange}
-                        placeholder="Description"
-                        required
-                        className="w-full p-4 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                    />
-                </div>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <input
-                        type="text"
-                        name="address"
-                        value={propertyData.address}
-                        onChange={handleChange}
-                        placeholder="Address"
-                        required
-                        className="w-full p-4 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                    />
-                    <input
-                        type="text"
-                        name="city"
-                        value={propertyData.city}
-                        onChange={handleChange}
-                        placeholder="City"
-                        required
-                        className="w-full p-4 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                    />
-                </div>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <input
-                        type="text"
-                        name="state"
-                        value={propertyData.state}
-                        onChange={handleChange}
-                        placeholder="State"
-                        required
-                        className="w-full p-4 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                    />
-                    <input
-                        type="text"
-                        name="zipCode"
-                        value={propertyData.zipCode}
-                        onChange={handleChange}
-                        placeholder="Zip Code"
-                        required
-                        className="w-full p-4 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                    />
-                </div>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <input
-                        type="number"
-                        name="price"
-                        value={propertyData.price}
-                        onChange={handleChange}
-                        placeholder="Price"
-                        required
-                        className="w-full p-4 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                    />
-                    <select
-                        name="propertyType"
-                        value={propertyData.propertyType}
-                        onChange={handleChange}
-                        required
-                        className="w-full p-4 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                    >
-                        <option value="">Select Property Type</option>
-                        <option value="Apartment">Apartment</option>
-                        <option value="House">House</option>
-                        <option value="Studio">Studio</option>
-                        <option value="Condo">Condo</option>
-                        <option value="Villa">Villa</option>
-                        <option value="Penthouse">Penthouse</option>
-                    </select>
-                </div>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <input
-                        type="number"
-                        name="bedrooms"
-                        value={propertyData.bedrooms}
-                        onChange={handleChange}
-                        placeholder="Bedrooms"
-                        required
-                        className="w-full p-4 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                    />
-                    <input
-                        type="number"
-                        name="bathrooms"
-                        value={propertyData.bathrooms}
-                        onChange={handleChange}
-                        placeholder="Bathrooms"
-                        required
-                        className="w-full p-4 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                    />
-                </div>
-                <input
-                    type="number"
-                    name="area"
-                    value={propertyData.area}
-                    onChange={handleChange}
-                    placeholder="Area (in sq. ft)"
-                    required
-                    className="w-full p-4 mb-4 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                />
-                <div className="flex items-center mb-6">
-                    <input
-                        type="checkbox"
-                        name="available"
-                        checked={propertyData.available}
-                        onChange={() =>
-                            setPropertyData({ ...propertyData, available: !propertyData.available })
-                        }
-                        className="mr-2 rounded border-gray-300 focus:ring-green-500"
-                    />
-                    <span>Available</span>
-                </div>
-                <select
-                    name="listingType"
-                    value={propertyData.listingType}
-                    onChange={handleChange}
-                    required
-                    className="w-full p-4 mb-4 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                >
-                    <option value="">Select Listing Type</option>
-                    <option value="Sale">Sale</option>
-                    <option value="Lease">Lease</option>
-                </select>
-                <input
-                    type="file"
-                    multiple
-                    onChange={handleImageChange}
-                    accept=".jpg,.jpeg,.png"
-                    className="w-full p-4 mb-6 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                />
-
-                <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full py-4 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700 disabled:bg-gray-400 transition duration-300"
-                >
-                    {loading ? 'Uploading...' : 'Create Property'}
-                </button>
-            </form>
-        </div>
-    );
-};
-
-export default PropertyForm;
+        .input:focus {
+          border-color: #10b981;
+        }
+      `}</style>
+    </>
+  );
+}

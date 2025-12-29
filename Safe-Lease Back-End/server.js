@@ -16,11 +16,12 @@ const server = http.createServer(app);
 
 const FRONTEND_ORIGIN = process.env.FRONTEND_URL || "http://localhost:5173";
 
-app.use(cors({
-  origin: FRONTEND_ORIGIN,
-  credentials: true,
-}));
-
+app.use(
+  cors({
+    origin: FRONTEND_ORIGIN,
+    credentials: true,
+  })
+);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -86,18 +87,13 @@ io.on("connection", async (socket) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     socket.userId = decoded.userId;
-    console.log(`Socket authenticated: ${socket.userId}`);
-  } catch (err) {
+  } catch {
     socket.emit("authError", "Authentication failed.");
     socket.disconnect();
     return;
   }
 
   socket.on("joinRoom", async ({ conversationId }) => {
-    socket.rooms.forEach((room) => {
-      if (room !== socket.id) socket.leave(room);
-    });
-
     socket.join(conversationId);
 
     const messages = await Message.find({ conversation: conversationId })

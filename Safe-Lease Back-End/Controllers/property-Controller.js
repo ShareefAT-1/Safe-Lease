@@ -5,51 +5,52 @@ const Property = require('../models/Property-model');
 // CREATE PROPERTY
 // =======================
 const createProperty = async (req, res) => {
-  try {
-    const {
-      title,
-      description,
-      address,
-      city,
-      state,
-      zipCode,
-      price,
-      propertyType,
-      bedrooms,
-      bathrooms,
-      area,
-      available,
-      listingType,
-    } = req.body;
+    try {
+        const {
+            title,
+            description,
+            address,
+            city,
+            state,
+            zipCode,
+            price,
+            propertyType,
+            bedrooms,
+            bathrooms,
+            area,
+            available,
+            listingType,
+        } = req.body;
 
-    const imagePaths = req.file
-      ? [req.file.path.replace(/\\/g, "/")]
-      : [];
+        const imagePaths = req.files
+            ? req.files.map(file => `http://localhost:4000/${file.path.replace(/\\/g, "/")}`)
+            : [];
 
-    const property = new Property({
-      title,
-      description,
-      address,
-      city,
-      state,
-      zipCode,
-      price: Number(price),
-      propertyType,
-      bedrooms: Number(bedrooms),
-      bathrooms: Number(bathrooms),
-      area: Number(area),
-      available: available === "true" || available === true,
-      listingType,
-      owner: req.user._id,
-      images: imagePaths,
-    });
 
-    await property.save();
-    res.status(201).json(property);
-  } catch (err) {
-    console.error("CREATE PROPERTY ERROR:", err);
-    res.status(500).json({ message: "Property creation failed" });
-  }
+        const property = new Property({
+            title,
+            description,
+            address,
+            city,
+            state,
+            zipCode,
+            price: Number(price),
+            propertyType,
+            bedrooms: Number(bedrooms),
+            bathrooms: Number(bathrooms),
+            area: Number(area),
+            available: available === "true" || available === true,
+            listingType,
+            owner: req.user._id,
+            images: imagePaths,
+        });
+
+        await property.save();
+        res.status(201).json(property);
+    } catch (err) {
+        console.error("CREATE PROPERTY ERROR:", err);
+        res.status(500).json({ message: "Property creation failed" });
+    }
 };
 
 

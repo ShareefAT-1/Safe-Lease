@@ -112,17 +112,19 @@ const PropertyCard = ({ property }) => {
   const bathrooms = property.bathrooms;
 
   let imageUrl = "https://placehold.co/800x500/0f172a/94a3b8?text=No+Image";
-  if (property.image && typeof property.image === "string") {
-    if (property.image.startsWith("uploads/")) {
-      imageUrl = `${axiosbase.defaults.baseURL}/${property.image}`;
-    } else if (property.image.startsWith("uploads\\")) {
-      imageUrl = `${axiosbase.defaults.baseURL}/${property.image.replace(/\\/g, "/")}`;
-    } else {
-      imageUrl = property.image;
-    }
-  } else if (property.imageUrl && typeof property.imageUrl === "string") {
+
+  if (Array.isArray(property.images) && property.images.length > 0) {
+    imageUrl = property.images[0];
+  }
+  else if (typeof property.image === "string") {
+    imageUrl = property.image.startsWith("uploads")
+      ? `${axiosbase.defaults.baseURL}/${property.image.replace(/\\/g, "/")}`
+      : property.image;
+  }
+  else if (typeof property.imageUrl === "string") {
     imageUrl = property.imageUrl;
   }
+
 
   return (
     <Link
@@ -213,15 +215,15 @@ const PropertyCard = ({ property }) => {
 
 export default function AllProducts() {
   const [products, setProducts] = useState([]);
-  const [visibleCount, setVisibleCount] = useState(9); 
+  const [visibleCount, setVisibleCount] = useState(9);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const [query, setQuery] = useState("");
   const [cityFilter, setCityFilter] = useState("");
-  const [typeFilter, setTypeFilter] = useState(""); 
-  const [priceRange, setPriceRange] = useState([0, 100000000]); 
-  const [sortBy, setSortBy] = useState("latest"); 
+  const [typeFilter, setTypeFilter] = useState("");
+  const [priceRange, setPriceRange] = useState([0, 100000000]);
+  const [sortBy, setSortBy] = useState("latest");
 
   const [cities, setCities] = useState([]);
 
