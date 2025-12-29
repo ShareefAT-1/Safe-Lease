@@ -1,4 +1,3 @@
-// Safe-Lease-Back-End/Controllers/agreement-Controller.js
 
 const Agreement = require('../models/Agreement-model');
 const User = require('../models/User-model');
@@ -11,8 +10,6 @@ const mongoose = require('mongoose');
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
 exports.createAgreement = async (req, res) => {
-    // ... (Your existing createAgreement logic is here)
-    // No changes needed in this function
     try {
         const {
             property,
@@ -100,8 +97,6 @@ exports.createAgreement = async (req, res) => {
 };
 
 exports.requestAgreement = async (req, res) => {
-    // ... (Your existing requestAgreement logic is here)
-    // No changes needed in this function
      try {
         const { property, landlord, rentAmount, depositAmount, startDate, endDate, leaseTermMonths, agreementTerms, message } = req.body;
         const tenantId = req.user._id;
@@ -164,8 +159,6 @@ exports.requestAgreement = async (req, res) => {
 };
 
 exports.updateAgreementStatus = async (req, res) => {
-    // ... (Your existing updateAgreementStatus logic is here)
-    // No changes needed in this function
      try {
         const { id } = req.params;
         const { status, rentAmount, depositAmount, startDate, endDate, leaseTermMonths, agreementTerms, message } = req.body;
@@ -253,8 +246,6 @@ exports.updateAgreementStatus = async (req, res) => {
 };
 
 exports.negotiateAgreement = async (req, res) => {
-    // ... (Your existing negotiateAgreement logic is here)
-    // No changes needed in this function
      try {
         const { id } = req.params;
         const { rentAmount, depositAmount, startDate, endDate, leaseTermMonths, agreementTerms, message } = req.body;
@@ -306,8 +297,6 @@ exports.negotiateAgreement = async (req, res) => {
 };
 
 exports.getRequestsForLandlord = async (req, res) => {
-    // ... (Your existing getRequestsForLandlord logic is here)
-    // No changes needed in this function
     try {
         const landlordId = req.user._id;
         const requests = await Agreement.find({
@@ -325,8 +314,6 @@ exports.getRequestsForLandlord = async (req, res) => {
 };
 
 exports.getRequestsForTenant = async (req, res) => {
-    // ... (Your existing getRequestsForTenant logic is here)
-    // No changes needed in this function
     try {
         const tenantId = req.user._id;
         const requests = await Agreement.find({
@@ -344,8 +331,6 @@ exports.getRequestsForTenant = async (req, res) => {
 };
 
 exports.getAgreementById = async (req, res) => {
-    // ... (Your existing getAgreementById logic is here)
-    // No changes needed in this function
     try {
         const { id } = req.params;
         const userId = req.user._id;
@@ -382,11 +367,6 @@ exports.getAgreementById = async (req, res) => {
         res.status(500).json({ message: 'Server error fetching agreement.' });
     }
 };
-
-// --- NEW FUNCTION FOR TENANT SIGNING ---
-// This is the only function you need to replace in your backend controller.
-
-// This is the only function you need to replace in your agreement-Controller.js file
 
 exports.signAsTenant = async (req, res) => {
     try {
@@ -429,7 +409,6 @@ exports.signAsTenant = async (req, res) => {
             tenantSignedDate: agreement.tenantSignedDate.toLocaleDateString('en-IN'),
         };
 
-        // This is the fix that prevents the PDF generation crash
         const pdfFileName = `agreement-signed-${agreement._id}.pdf`;
         const pdfFilePath = path.join(__dirname, '../uploads/agreements', pdfFileName);
         

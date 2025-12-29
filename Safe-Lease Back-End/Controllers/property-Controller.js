@@ -1,4 +1,3 @@
-// Safe-Lease Back-End/Controllers/property-Controller.js
 
 const Property = require('../models/Property-model');
 
@@ -75,7 +74,7 @@ const getPropertyById = async (req, res) => {
 };
 
 // =======================
-// ✅ GET PROPERTIES BY OWNER (LANDLORD)
+// GET PROPERTIES BY OWNER (LANDLORD)
 // =======================
 const getPropertiesByOwner = async (req, res) => {
     try {
@@ -211,6 +210,9 @@ const deleteProperty = async (req, res) => {
 // SEARCH PROPERTIES
 // =======================
 const searchProperties = async (req, res) => {
+    // const sample = await Property.findOne();
+    // console.log("SAMPLE PROPERTY:", sample);
+
     try {
         const q = req.query.q;
         if (!q) {
@@ -221,14 +223,16 @@ const searchProperties = async (req, res) => {
 
         const properties = await Property.find({
             $or: [
-                { title: regex },
+                { propertyName: regex },
+                { location: regex },
                 { description: regex },
-                { city: regex },
-                { state: regex }
+                { type: regex },
+                { status: regex }
             ]
-        }).populate('owner', 'name email');
+        }).populate("owner", "name email");
 
-        res.json(properties);
+
+        res.json({ properties });
     } catch (err) {
         res.status(500).json({ message: 'Search failed' });
     }

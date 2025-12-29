@@ -1,5 +1,3 @@
-// Safe-Lease-Back-End/utils/generatePDF.js
-
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
@@ -7,8 +5,6 @@ const path = require('path');
 const generateAgreementPDF = async (agreementData, outputPath) => {
     return new Promise((resolve, reject) => {
         try {
-            // --- THIS IS THE CRITICAL FIX ---
-            // Get the directory path from the full output path
             const outputDir = path.dirname(outputPath);
 
             // Ensure the directory exists before trying to write the file.

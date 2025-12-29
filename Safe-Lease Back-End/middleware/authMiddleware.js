@@ -19,7 +19,6 @@ const authMiddleware = async (req, res, next) => {
             return res.status(401).json({ msg: 'Token valid but missing userId payload' });
         }
 
-        // --- Important: Attaching the full user object to req.user ---
         req.user = await User.findById(decoded.userId).select('-password');
         if (!req.user) {
             // console.log('Error: User not found in database for ID:', decoded.userId);
@@ -39,7 +38,6 @@ const authMiddleware = async (req, res, next) => {
         }
         return res.status(401).json({ msg: 'Token is not valid (general error)' });
     } finally {
-        // This block is optional and usually not needed unless for specific cleanup
     }
 };
 

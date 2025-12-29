@@ -2,10 +2,7 @@ const User = require('../models/User-model');
 
 const roleMiddleware = (requiredRole) => {
     return (req, res, next) => {
-        // Use req.user._id if authMiddleware attaches the full user object to req.user
-        // Or req.userId if it only attaches the ID to req.userId
-        // Assuming req.user is populated by authMiddleware with user details including ID and role
-        User.findById(req.user._id) // Changed from req.user.id to req.user._id for consistency
+        User.findById(req.user._id) 
             .then(user => {
                 if (!user) {
                     return res.status(404).json({ msg: 'User not found' });

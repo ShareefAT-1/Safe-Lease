@@ -1,12 +1,11 @@
 const multer = require('multer');
 const path = require('path');
-const fs = require ('fs'); // Import fs module to create directories
+const fs = require ('fs'); 
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        const uploadDir = 'uploads/'; // Define your upload directory
+        const uploadDir = 'uploads/'; 
 
-        // Create the directory if it doesn't exist
         if (!fs.existsSync(uploadDir)) {
             fs.mkdirSync(uploadDir, { recursive: true });
         }
@@ -28,5 +27,4 @@ const fileFilter = (req, file, cb) => {
 
 const upload = multer({ storage, fileFilter });
 
-// --- CRUCIAL CHANGE: Export the 'upload' instance directly, not as an object ---
-module.exports = upload; // Removed curly braces
+module.exports = upload; 

@@ -1,5 +1,3 @@
-// Safe-Lease Back-End/models/Property-model.js
-
 const mongoose = require('mongoose');
 
 const propertySchema = new mongoose.Schema({
@@ -63,7 +61,6 @@ const propertySchema = new mongoose.Schema({
     enum: ['Sale', 'Lease'],
     required: true
   },
-  // --- UPDATED: 'image' is now 'images' to store an array of strings ---
   images: [{
     type: String,
     required: false
@@ -71,7 +68,7 @@ const propertySchema = new mongoose.Schema({
   owner: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true // Best practice to require an owner
+    required: true 
   }
 }, { timestamps: true });
 

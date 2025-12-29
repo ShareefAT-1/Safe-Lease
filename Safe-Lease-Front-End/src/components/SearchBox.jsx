@@ -1,145 +1,178 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaSearch } from "react-icons/fa"; // Import a search icon
+import { FaSearch } from "react-icons/fa";
+import { motion, AnimatePresence } from "framer-motion";
 
 const SearchBox = () => {
   const [properties, setProperties] = useState([]);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [noResults, setNoResults] = useState(false);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [open, setOpen] = useState(false);
 
   const navigate = useNavigate();
 
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (query.trim() === "") {
+    const timeout = setTimeout(() => {
+      if (!query.trim()) {
         setProperties([]);
         setNoResults(false);
-        setLoading(false);
-        setIsDropdownOpen(false);
         return;
       }
 
       setLoading(true);
-      setNoResults(false);
-      setIsDropdownOpen(true);
+      setOpen(true);
 
-      fetch(`http://localhost:4000/properties/search?q=${query}`)
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-          return response.json();
-        })
+      fetch(
+        `http://localhost:4000/api/properties/search?q=${encodeURIComponent(
+          query
+        )}`
+      )
+        .then((res) => res.json())
         .then((data) => {
-          if (data.properties) {
-            setProperties(data.properties);
-            if (data.properties.length === 0) {
-              setNoResults(true);
-            }
-          } else {
-            setProperties([]);
-            setNoResults(true);
-          }
+          setProperties(data.properties || []);
+          setNoResults(!data.properties || data.properties.length === 0);
           setLoading(false);
         })
-        .catch((err) => {
-          console.error("Property search failed:", err);
+        .catch(() => {
           setLoading(false);
           setNoResults(true);
         });
-    }, 500);
+    }, 400);
 
-    return () => clearTimeout(timeoutId);
+    return () => clearTimeout(timeout);
   }, [query]);
 
-  const handleEnter = (e) => {
-    e.preventDefault();
-    if (query.trim()) {
-      // Optional: Navigate to a dedicated search results page if needed
-      // navigate(`/search-results?q=${query}`);
-
-      setQuery("");
-      setProperties([]);
-      setIsDropdownOpen(false);
-    }
-  };
-
-  const handleResultClick = (propertyId) => {
-    navigate(`/property/${propertyId}`);
-    setQuery("");
-    setProperties([]);
-    setIsDropdownOpen(false);
-  };
-
   return (
-    <div className="relative bg-transparent p-2 rounded-full flex justify-center items-center">
-      {/* Root container is transparent to blend with Navbar's white background */}
-      <form onSubmit={handleEnter} className="relative w-full max-w-md">
+    <div className="relative w-[340px]">
+      {/* 🌈 RGB OUTLINE */}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{
+              opacity: 1,
+              backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
+            }}
+            exit={{ opacity: 0 }}
+            transition={{
+              backgroundPosition: {
+                duration: 16,
+                repeat: Infinity,
+                ease: "linear",
+              },
+              opacity: { duration: 0.2 },
+            }}
+            className="absolute -inset-[1.2px] rounded-full pointer-events-none"
+            style={{
+              background:
+                "linear-gradient(90deg, rgb(66,135,245), rgb(120,66,245), rgb(66,245,162), rgb(245,66,162), rgb(66,135,245))",
+              backgroundSize: "300% 300%",
+              filter: "blur(1.5px)",
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* 🔍 SEARCH INPUT */}
+      <div className="relative z-10 flex items-center gap-2 px-4 py-2.5 rounded-full bg-white shadow-sm">
+        <FaSearch className="text-blue-500 text-sm" />
         <input
-          className="text-gray-800 bg-gray-100 w-full pl-10 pr-4 py-3 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
-          // Text color set to dark gray for readability on light background
-          // Input background is light gray for subtle contrast
-          // Focus ring changed to a prominent blue for interaction
-          // Placeholder is darker for visibility
           type="text"
-          placeholder="Search for properties..."
+          placeholder="Search properties..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          onFocus={() => {
-            if (query.trim() !== "" || properties.length > 0)
-              setIsDropdownOpen(true);
-          }}
-          onBlur={() => setTimeout(() => setIsDropdownOpen(false), 150)}
+          onFocus={() => setOpen(true)}
+          onBlur={() => setTimeout(() => setOpen(false), 150)}
+          className="
+            w-full bg-transparent outline-none
+            text-gray-800 placeholder:text-gray-400
+            text-sm
+          "
         />
-        <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
-        {/* Search icon color adjusted */}
-      </form>
+      </div>
 
-      {isDropdownOpen &&
-        (query.trim() !== "" || loading || noResults || properties.length > 0) && (
-          <div className="absolute top-full mt-2 left-1/2 transform -translate-x-1/2 w-full max-w-md bg-white rounded-xl shadow-lg max-h-[300px] overflow-y-auto overflow-x-hidden border border-gray-200">
-            {/* Dropdown background is now white, border is light gray */}
-            {loading && (
-              <div className="flex justify-center items-center py-8">
-                <div className="animate-spin border-4 border-t-4 border-blue-500 border-solid rounded-full w-10 h-10"></div>
-                {/* Spinner color adjusted to match prominent blue */}
-              </div>
-            )}
+      {/* 📦 DROPDOWN */}
+      <AnimatePresence>
+       {open && query && (
+  <motion.div
+    initial={{ opacity: 0, y: -6 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: -6 }}
+    transition={{ duration: 0.2 }}
+    className="absolute z-50 mt-3 w-full"
+  >
+    {/* 🌈 RGB BORDER */}
+    <motion.div
+      className="absolute -inset-[1px] rounded-xl pointer-events-none"
+      style={{
+        background:
+          "linear-gradient(90deg, rgb(66,135,245), rgb(120,66,245), rgb(66,245,162), rgb(245,66,162), rgb(66,135,245))",
+        backgroundSize: "300% 300%",
+        filter: "blur(1px)",
+      }}
+      animate={{
+        backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
+      }}
+      transition={{
+        duration: 18,
+        repeat: Infinity,
+        ease: "linear",
+      }}
+    />
 
-            {noResults && !loading && (
-              <div className="flex justify-center items-center py-8 text-gray-600">
-                {/* No results text color for readability */}
-                <p>No properties found.</p>
-              </div>
-            )}
+    {/* 🧊 ACTUAL DROPDOWN (ONLY scrollable element) */}
+    <div
+      className="
+        relative
+        rounded-xl
+        bg-[#0b1220]/95
+        backdrop-blur-xl
+        border border-white/10
+        shadow-2xl
+        max-h-[320px]
+        overflow-y-auto
 
-            {query && !loading && properties.length > 0 && (
-              <div className="flex flex-col py-2">
-                {properties.map((property) => (
-                  <div
-                    onClick={() => handleResultClick(property._id)}
-                    key={property._id}
-                    className="bg-gray-50 m-2 p-3 rounded-lg w-[calc(100%-16px)] cursor-pointer hover:bg-gray-100 transition-colors duration-200"
-                  >
-                    {/* Result item background is very light gray, hover is slightly darker */}
-                    <div className="text-left">
-                      <h2 className="text-lg font-semibold text-gray-800 hover:text-blue-600 line-clamp-1">
-                        {/* Result title color is dark gray, hover is blue */}
-                        {property.title || property.propertyName || "Untitled Property"}
-                      </h2>
-                      {property.address && (
-                        <p className="text-sm text-gray-500 line-clamp-1">{property.address}</p>
-                        // Address text color adjusted
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+        [&::-webkit-scrollbar]:hidden
+        [-ms-overflow-style:none]
+        [scrollbar-width:none]
+      "
+    >
+      {loading && (
+        <div className="py-6 text-center text-white/60 text-sm">
+          Searching…
+        </div>
+      )}
+
+      {noResults && !loading && (
+        <div className="py-6 text-center text-white/50 text-sm">
+          No properties found
+        </div>
+      )}
+
+      {!loading &&
+        properties.map((p) => (
+          <div
+            key={p._id}
+            onClick={() => navigate(`/property/${p._id}`)}
+            className="
+              px-4 py-3 cursor-pointer
+              hover:bg-white/5 transition
+              border-b border-white/5 last:border-none
+            "
+          >
+            <p className="text-sm font-medium text-white">
+              {p.propertyName}
+            </p>
+            <p className="text-xs text-white/50">{p.location}</p>
           </div>
-        )}
+        ))}
+    </div>
+  </motion.div>
+)}
+
+
+      </AnimatePresence>
     </div>
   );
 };

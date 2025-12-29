@@ -21,15 +21,13 @@ const agreementSchema = new mongoose.Schema({
         enum: ['pending', 'approved', 'rejected', 'negotiating', 'active', 'expired', 'cancelled'],
         default: 'pending',
     },
-    // Original terms requested by the tenant
     requestedTerms: {
         rent: { type: Number, required: true },
         deposit: { type: Number, required: true },
         moveInDate: { type: Date, required: true },
-        leaseTerm: { type: Number, required: true }, // Lease term in months
+        leaseTerm: { type: Number, required: true }, 
         endDate: { type: Date, required: true },
     },
-    // Current or finalized terms (these get updated during negotiation)
     finalRentAmount: {
         type: Number,
         required: function() { return ['approved', 'active', 'expired', 'negotiating'].includes(this.status); }
@@ -50,14 +48,14 @@ const agreementSchema = new mongoose.Schema({
         type: Date,
         required: function() { return ['approved', 'active', 'expired', 'negotiating'].includes(this.status); }
     },
-    agreementTerms: { // General agreement clauses/text
+    agreementTerms: { 
         type: String,
         required: true,
     },
-    requestMessage: { // Optional message from tenant when initiating request
+    requestMessage: { 
         type: String,
     },
-    lastNegotiatedBy: { // Tracks who made the last change in negotiation
+    lastNegotiatedBy: { 
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: false
