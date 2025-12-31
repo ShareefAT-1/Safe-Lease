@@ -20,6 +20,7 @@ import UserProfile from "./pages/UserProfile";
 import MyProperties from "./pages/MyProperties";
 import LandlordProperties from "./pages/LandlordProperties";
 import TenantChatsPage from "./pages/TenantChatsPage";
+import EditProperty from "./pages/EditProperty";
 
 import TenantSignAgreementPage from "./pages/TenantSignAgreementPage";
 
@@ -46,6 +47,7 @@ function App() {
         <Route path="/tenant-chats" element={<TenantChatsPage />} />
         <Route path="/profile/:id" element={<UserProfile />} />
         <Route path="/my-properties" element={<MyProperties />} />
+        <Route path="/edit-property/:id" element={<EditProperty />} />
         <Route
           path="/landlord/:landlordId/properties"
           element={<LandlordProperties />}

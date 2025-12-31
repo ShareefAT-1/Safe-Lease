@@ -12,12 +12,6 @@ const MyProperties = () => {
     const [properties, setProperties] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    // useEffect(() => {
-    //     if (properties.length > 0) {
-    //         console.log("PROPERTY IMAGES DEBUG:", properties.map(p => p.images));
-    //     }
-    // }, [properties]);
-
     useEffect(() => {
         if (!isAuthenticated || !user?.id) return;
 
@@ -37,6 +31,32 @@ const MyProperties = () => {
 
         fetchMyProperties();
     }, [isAuthenticated, user]);
+
+    const handleDelete = async (propertyId) => {
+        const confirmDelete = window.confirm(
+            "Are you sure you want to delete this property? This action cannot be undone."
+        );
+        if (!confirmDelete) return;
+
+        try {
+            const token = localStorage.getItem("token");
+
+            await axiosbase.delete(`/api/properties/${propertyId}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            setProperties((prev) =>
+                prev.filter((p) => p._id !== propertyId)
+            );
+
+            toast.success("Property deleted successfully");
+        } catch (err) {
+            console.error(err);
+            toast.error("Failed to delete property");
+        }
+    };
 
     if (!isAuthenticated) {
         return (
@@ -72,7 +92,6 @@ const MyProperties = () => {
                                 key={property._id}
                                 className="bg-[#0c1322] border border-white/6 rounded-2xl overflow-hidden hover:border-cyan-400/40 transition"
                             >
-                                {/* Image */}
                                 <div className="h-48 bg-black overflow-hidden rounded-t-2xl">
                                     <img
                                         src={
@@ -89,12 +108,8 @@ const MyProperties = () => {
                                         alt={property.title || property.propertyName}
                                         className="w-full h-full object-cover"
                                     />
-
-
                                 </div>
 
-
-                                {/* Info */}
                                 <div className="p-4">
                                     <h3 className="text-lg font-semibold text-white">
                                         {property.title || property.propertyName}
@@ -113,18 +128,23 @@ const MyProperties = () => {
                                     <div className="mt-4 flex gap-2">
                                         <button
                                             onClick={() => navigate(`/property/${property._id}`)}
-                                            className="flex-1 px-3 py-2 rounded-lg bg-white/15 hover:bg-white/25 text-white text-sm"
+                                            className="flex-1 px-3 py-2 rounded-lg bg-white/15 hover:bg-white/25 text-white text-sm font-semibold transition"
                                         >
                                             View
                                         </button>
 
                                         <button
-                                            onClick={() =>
-                                                navigate(`/property/edit/${property._id}`)
-                                            }
-                                            className="flex-1 px-3 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white text-sm"
+                                            onClick={() => navigate(`/edit-property/${property._id}`)}
+                                            className="flex-1 px-3 py-2 rounded-lg bg-sky-500 text-slate-900 text-sm font-semibold hover:bg-sky-400 transition"
                                         >
                                             Edit
+                                        </button>
+
+                                        <button
+                                            onClick={() => handleDelete(property._id)}
+                                            className="flex-1 px-3 py-2 rounded-lg bg-red-500/15 text-red-400 text-sm font-semibold hover:bg-red-500/25 hover:text-red-300 transition"
+                                        >
+                                            Delete
                                         </button>
                                     </div>
 

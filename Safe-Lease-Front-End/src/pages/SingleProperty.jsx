@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import axiosbase from "../config/axios-config";
 import { toast } from "react-hot-toast";
+import { getImageUrl } from "../utils/getImageUrl";
 
 import {
   FaMapMarkerAlt,
@@ -151,12 +152,11 @@ const SingleProperty = () => {
 
   const displayImageUrl =
     property.images?.length > 0
-      ? `${axiosbase.defaults.baseURL.replace(/\/$/, "")}/${String(
-        property.images[0]
-      ).replace(/^\/+/, "")}`
+      ? getImageUrl(property.images[0])
       : property.imageUrl ||
       property.image ||
       "https://placehold.co/1200x700/000000/FFFFFF?text=No+Image";
+
 
   const chatRecipientId = property.owner?._id;
   const displayLandlordName = property.owner?.name || property.owner?.username || "Landlord";

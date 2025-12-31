@@ -1,7 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axiosbase from "../config/axios-config";
 
-export default function PropertyForm() {
+export default function PropertyForm({
+  initialData = null,
+  onSubmit,
+  submitText = "Create Property",
+}) {
   const [propertyData, setPropertyData] = useState({
     title: "",
     description: "",
@@ -21,6 +25,27 @@ export default function PropertyForm() {
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+
+  // ✅ PREFILL FORM FOR EDIT
+  useEffect(() => {
+    if (initialData) {
+      setPropertyData({
+        title: initialData.title || "",
+        description: initialData.description || "",
+        address: initialData.address || "",
+        city: initialData.city || "",
+        state: initialData.state || "",
+        zipCode: initialData.zipCode || "",
+        price: initialData.price || "",
+        propertyType: initialData.propertyType || "",
+        bedrooms: initialData.bedrooms || "",
+        bathrooms: initialData.bathrooms || "",
+        area: initialData.area || "",
+        available: initialData.available ?? true,
+        listingType: initialData.listingType || "",
+      });
+    }
+  }, [initialData]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -50,12 +75,16 @@ export default function PropertyForm() {
         formData.append("images", images[i]);
       }
 
-      const token = localStorage.getItem("token");
+      // ✅ EDIT MODE
+      if (onSubmit) {
+        await onSubmit(formData);
+        return;
+      }
 
+      // ✅ CREATE MODE
+      const token = localStorage.getItem("token");
       await axiosbase.post("/api/properties", formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       setMessage("Property created successfully");
@@ -77,7 +106,7 @@ export default function PropertyForm() {
       setImages([]);
     } catch (err) {
       console.error(err);
-      setMessage("Failed to create property");
+      setMessage("Failed to submit property");
     } finally {
       setLoading(false);
     }
@@ -91,7 +120,7 @@ export default function PropertyForm() {
           className="w-full max-w-3xl bg-slate-900 border border-white/10 rounded-2xl p-8 shadow-xl"
         >
           <h2 className="text-3xl font-bold text-white mb-6 text-center">
-            Create a New Property
+            {submitText}
           </h2>
 
           {message && (
@@ -143,7 +172,7 @@ export default function PropertyForm() {
             disabled={loading}
             className="mt-6 w-full py-3 rounded-xl bg-emerald-500 text-slate-900 font-bold hover:bg-emerald-400 transition"
           >
-            {loading ? "Uploading..." : "Create Property"}
+            {loading ? "Uploading..." : submitText}
           </button>
         </form>
       </div>
