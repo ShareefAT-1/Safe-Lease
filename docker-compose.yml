@@ -1,0 +1,20 @@
+services:
+  backend:
+    build: "./Safe-Lease Back-End"
+    container_name: safelease-backend
+    ports:
+      - "4000:4000"
+    env_file:
+      - .env
+    volumes:
+      - "./Safe-Lease Back-End/uploads:/app/uploads"
+
+  frontend:
+    build: "./Safe-Lease-Front-End"
+    container_name: safelease-frontend
+    ports:
+      - "5173:5173"
+    env_file:
+      - .env
+    depends_on:
+      - backend
