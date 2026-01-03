@@ -1,0 +1,27 @@
+services:
+  backend:
+    build: "./Safe-Lease Back-End"
+    container_name: safelease-backend-dev
+    command: npm run start
+    ports:
+      - "4000:4000"
+    env_file:
+      - .env
+    volumes:
+      - "./Safe-Lease Back-End:/app"
+      - /app/node_modules
+      - "./Safe-Lease Back-End/uploads:/app/uploads"
+
+  frontend:
+    build: "./Safe-Lease-Front-End"
+    container_name: safelease-frontend-dev
+    command: npm run dev
+    ports:
+      - "5173:5173"
+    env_file:
+      - .env
+    volumes:
+      - "./Safe-Lease-Front-End:/app"
+      - /app/node_modules
+    depends_on:
+      - backend
